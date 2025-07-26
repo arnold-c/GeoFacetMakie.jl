@@ -2,7 +2,7 @@
 # GeoFacetMakie.jl
 
 A Julia package for creating geofaceted visualizations using Makie.jl.
-Inspired by the R geofacet package, this provides tools for arranging 
+Inspired by the R geofacet package, this provides tools for arranging
 plots in geographical layouts.
 
 ## Main Functions
@@ -29,6 +29,7 @@ using DataFrames
 # Include submodules
 include("structs.jl")
 include("grid_operations.jl")
+include("grid_loader.jl")
 include("geofacet.jl")
 
 end # module

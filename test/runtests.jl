@@ -10,6 +10,7 @@ using Makie
     include("test_geogrid_validation.jl")
     include("test_geogrid_querying.jl")
     include("test_geogrid_edge_cases.jl")
+    include("test_grid_loading.jl")
 end
 # TODO: Re-enable once core functionality is complete
 # using JET
