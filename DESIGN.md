@@ -119,18 +119,94 @@ end
 
 ### API Design
 
-#### Primary Interface
+#### Primary Interface (Function-Passing Approach)
+
+The core design philosophy emphasizes passing user-defined plotting functions to a wrapper that applies them across geographical facets. This provides maximum flexibility while handling coordination challenges.
+
 ```julia
-# Basic usage
+# Function-passing style (primary approach)
+function plot_single_facet(df, ax)
+    lines!(ax, df.year, df.unemployment_rate, color = :blue)
+    scatter!(ax, df.year, df.unemployment_rate, markersize = 8)
+end
+
+geofacet(data, :state, plot_single_facet;
+         grid = us_state_grid,
+         shared_axes = true)
+
+# Convenience wrapper for simple cases
 geofacet(data, :state, :year, :unemployment_rate;
          grid = us_state_grid,
          plot_type = :line)
+```
 
-# Advanced usage with custom plotting function
-geofacet(data, :country, grid = eu_grid) do df
-    lines!(df.year, df.gdp_per_capita, color = :blue)
-    scatter!(df.year, df.gdp_per_capita, color = :red, markersize = 8)
+#### API Design Challenges and Solutions
+
+**Challenge 1: Global Axis Coordination**
+When `shared_axes=true`, the wrapper must coordinate axis properties across facets while user functions operate on individual axes.
+
+*Solution: Two-pass approach*
+```julia
+function geofacet(data, entity_col, plot_func; shared_axes=true, grid=us_state_grid)
+    # Pass 1: Collect axis information from dry run
+    axis_bounds = compute_global_limits(data, entity_col, plot_func)
+
+    # Pass 2: Apply plots with coordinated axes
+    apply_with_shared_axes(data, entity_col, plot_func, axis_bounds, grid)
 end
+```
+
+**Challenge 2: Theme Application**
+Ensuring consistent theming across facets while allowing customization.
+
+*Solution: Theme context management*
+```julia
+function geofacet(data, entity_col, plot_func; theme=nothing, kwargs...)
+    grouped_data = groupby(data, entity_col)
+    fig = Figure()
+
+    # Create axes for each grid position
+    axes_dict = create_geo_axes(fig, grid)
+
+    # Apply plotting with or without theme
+    if theme === nothing
+        plot_objects = apply_plots(grouped_data, axes_dict, plot_func)
+    else
+        plot_objects = with_theme(theme) do
+            apply_plots(grouped_data, axes_dict, plot_func)
+        end
+    end
+
+    # Handle shared axes coordination
+    if shared_axes
+        coordinate_axes!(axes_dict, plot_objects)
+    end
+
+    return fig
+end
+```
+
+**Challenge 3: Legend and Colorbar Management**
+Multiple facets creating conflicting legends requires centralized coordination.
+
+*Solution: Collect and unify plot objects*
+```julia
+# User plotting function returns plot objects
+function plot_single_facet(df, ax)
+    p1 = lines!(ax, df.year, df.unemployment_rate, color = :blue, label = "Rate")
+    p2 = scatter!(ax, df.year, df.unemployment_rate, markersize = 8)
+    return [p1, p2]  # Return for legend coordination
+end
+
+# Wrapper collects all plot objects for unified legend
+plot_objects = []
+for (entity, ax) in entity_axis_pairs
+    plots = plot_func(get_data(entity), ax)
+    append!(plot_objects, plots)
+end
+
+# Create unified legend from collected objects
+create_unified_legend(fig, plot_objects, :right)
 ```
 
 #### Grid Management
@@ -151,19 +227,51 @@ custom_grid = create_grid("my_regions",
 
 ### Integration with DataFrames.jl
 
-The package will leverage DataFrames.jl's grouping capabilities:
+The package leverages DataFrames.jl's grouping capabilities with careful attention to Makie's actual patterns:
 
 ```julia
-# Internal workflow
-grouped_data = groupby(data, entity_column)
-for (key, subdf) in pairs(grouped_data)
-    entity_name = key[entity_column]
-    if haskey(grid.positions, entity_name)
-        row, col = grid.positions[entity_name]
-        plot_at_position!(layout[row, col], subdf, plot_function)
+# Realistic internal workflow
+function geofacet(data::DataFrame, entity_col::Symbol, plot_func::Function;
+                  grid::GeoGrid = us_state_grid, shared_axes::Bool = true)
+
+    # Group data by geographical entity
+    grouped_data = groupby(data, entity_col)
+
+    # Create figure and axes dictionary
+    fig = Figure()
+    axes_dict = Dict{String, Axis}()
+
+    # Create axes for each grid position
+    for (entity, (row, col)) in grid.positions
+        axes_dict[entity] = Axis(fig[row, col])
     end
+
+    # Apply plotting function to each group
+    plot_objects = []
+    for (key, subdf) in pairs(grouped_data)
+        entity_name = string(key[entity_col])
+        if haskey(axes_dict, entity_name)
+            ax = axes_dict[entity_name]
+            plot_obj = plot_func(subdf, ax)
+            push!(plot_objects, plot_obj)
+        end
+    end
+
+    # Coordinate axes if requested
+    if shared_axes
+        link_axes!(collect(values(axes_dict)))
+    end
+
+    return fig
 end
 ```
+
+#### Error Handling Considerations
+
+- **Missing Entities**: Gracefully handle entities in data not present in grid
+- **Empty Groups**: Handle groups with no data points
+- **Plot Function Failures**: Catch and report errors in user plotting functions
+- **Type Stability**: Ensure plotting function signatures are well-defined
 
 ### Makie Integration Strategy
 
@@ -180,9 +288,14 @@ end
 - **Custom**: User-defined plotting functions
 
 #### Theming Integration
-- Respect Makie's global themes
+- Respect Makie's global themes using `with_theme()` pattern
 - Provide geofacet-specific theme options
-- Support for per-facet customization
+- Support for per-facet customization through axis setup functions
+
+#### Implementation Notes
+- Use explicit loops rather than functional programming patterns for clarity
+- Store plot objects for legend coordination rather than attempting complex functional composition
+- Follow Makie's established patterns for layout and theming rather than inventing new abstractions
 
 ## Implementation Plan
 
