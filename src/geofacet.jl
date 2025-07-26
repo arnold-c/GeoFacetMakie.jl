@@ -31,7 +31,7 @@ const us_state_grid = let
 end
 
 """
-    geofacet(data, region_col, plot_func; 
+    geofacet(data, region_col, plot_func;
              grid = us_state_grid,
              figure_kwargs = NamedTuple(),
              axis_kwargs = NamedTuple(),
@@ -49,7 +49,7 @@ Create a geographically faceted plot using the specified grid layout.
 # Keyword Arguments
 - `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid`)
 - `figure_kwargs`: NamedTuple passed to `Figure()` constructor
-- `axis_kwargs`: NamedTuple passed to each `Axis()` constructor  
+- `axis_kwargs`: NamedTuple passed to each `Axis()` constructor
 - `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
 - `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
 
@@ -71,61 +71,63 @@ data = DataFrame(
 )
 
 # Create bar plots for each state
-result = geofacet(data, :state, 
+result = geofacet(data, :state,
     (ax, data) -> barplot!(ax, [1], data.population))
 
 # Display the figure
 result.figure
 ```
 """
-function geofacet(data, region_col, plot_func; 
-                  grid = us_state_grid,
-                  figure_kwargs = NamedTuple(),
-                  axis_kwargs = NamedTuple(),
-                  link_axes = :none,
-                  missing_regions = :skip,
-                  kwargs...)
-    
+function geofacet(
+        data, region_col, plot_func;
+        grid = us_state_grid,
+        figure_kwargs = NamedTuple(),
+        axis_kwargs = NamedTuple(),
+        link_axes = :none,
+        missing_regions = :skip,
+        kwargs...
+    )
+
     # Input validation
     if isempty(data)
         throw(ArgumentError("Data cannot be empty"))
     end
-    
+
     # Convert region_col to Symbol if it's a string
     region_col_sym = region_col isa String ? Symbol(region_col) : region_col
-    
+
     if !hasproperty(data, region_col_sym)
         throw(ArgumentError("Column $region_col not found in data"))
     end
-    
+
     # Validate link_axes parameter
     if !(link_axes in [:none, :x, :y, :both])
         throw(ArgumentError("link_axes must be one of :none, :x, :y, :both"))
     end
-    
+
     # Validate missing_regions parameter
     if !(missing_regions in [:skip, :empty, :error])
         throw(ArgumentError("missing_regions must be one of :skip, :empty, :error"))
     end
-    
+
     # Group data by region column
     grouped_data = _group_data_by_region(data, region_col_sym)
-    
+
     # Get grid dimensions
     max_row, max_col = grid_dimensions(grid)
-    
+
     # Create figure with appropriate size
     default_figure_kwargs = (size = (max_col * 200, max_row * 150),)
     merged_figure_kwargs = merge(default_figure_kwargs, figure_kwargs)
     fig = Figure(; merged_figure_kwargs...)
-    
+
     # Create main grid layout
     grid_layout = fig[1, 1] = GridLayout()
-    
+
     # Create axes dictionary and data mapping
     axes_dict = Dict{String, Axis}()
     data_mapping = Dict{String, Any}()
-    
+
     # Handle missing regions check
     if missing_regions == :error
         grid_regions = Set(keys(grid.positions))
@@ -136,20 +138,20 @@ function geofacet(data, region_col, plot_func;
             throw(ArgumentError("Missing regions in data: $missing_list"))
         end
     end
-    
+
     # Create axes for all grid positions
     for (region_code, (row, col)) in grid.positions
         # Create axis at grid position
         ax = Axis(grid_layout[row, col]; axis_kwargs...)
         axes_dict[region_code] = ax
-        
+
         # Check if we have data for this region
         region_data = _find_region_data(grouped_data, region_code)
-        
+
         if !isnothing(region_data)
             # We have data for this region
             data_mapping[region_code] = region_data
-            
+
             # Execute plot function with error handling
             try
                 plot_func(ax, region_data)
@@ -171,7 +173,7 @@ function geofacet(data, region_col, plot_func;
             end
         end
     end
-    
+
     # Apply axis linking
     if link_axes != :none && !isempty(axes_dict)
         axes_list = collect(values(axes_dict))
@@ -183,12 +185,12 @@ function geofacet(data, region_col, plot_func;
             linkaxes!(axes_list...)
         end
     end
-    
+
     return (
         figure = fig,
         axes = axes_dict,
         grid_layout = grid_layout,
-        data_mapping = data_mapping
+        data_mapping = data_mapping,
     )
 end
 
@@ -200,7 +202,7 @@ Group data by region column, handling case-insensitive matching.
 function _group_data_by_region(data, region_col)
     # Use DataFrames groupby for efficient grouping
     grouped = groupby(data, region_col)
-    
+
     # Convert to dictionary with string keys (uppercase for consistency)
     result = Dict{String, Any}()
     for group in grouped
@@ -209,7 +211,7 @@ function _group_data_by_region(data, region_col)
         result[uppercase(region_code)] = group
         result[region_code] = group  # Also store original case
     end
-    
+
     return result
 end
 
@@ -223,19 +225,20 @@ function _find_region_data(grouped_data, region_code)
     if haskey(grouped_data, region_code)
         return grouped_data[region_code]
     end
-    
+
     # Try uppercase match
     upper_code = uppercase(region_code)
     if haskey(grouped_data, upper_code)
         return grouped_data[upper_code]
     end
-    
+
     # Try lowercase match
     lower_code = lowercase(region_code)
     if haskey(grouped_data, lower_code)
         return grouped_data[lower_code]
     end
-    
+
     # No match found
     return nothing
 end
+
