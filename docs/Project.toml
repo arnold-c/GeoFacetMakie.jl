@@ -1,5 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+GeoFacetMakie = "f2e9801d-a43b-4ab5-b898-52709f6fb569"
 
 [compat]
 Documenter = "1"
