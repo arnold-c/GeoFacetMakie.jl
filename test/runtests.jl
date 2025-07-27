@@ -12,6 +12,7 @@ using Makie
     include("test_geogrid_edge_cases.jl")
     include("test_grid_loading.jl")
     include("test_geofacet.jl")
+    include("test_geofacet_gridlayout.jl")
 end
 # TODO: Re-enable once core functionality is complete
 # using JET
