@@ -58,18 +58,21 @@ println("-"^40)
 
 function barplot_fn(data)
     fig = Figure()
-    ax = Axis(fig[1, 1])
-    barplot_fn!(ax, data)
+    gl = fig[1, 1] = GridLayout()
+    barplot_fn!(gl, data)
     return fig
 end
 
-function barplot_fn!(ax, data)
+function barplot_fn!(gl, data; axis_kwargs...)
+    ax = Axis(gl[1, 1]; axis_kwargs...)
     barplot!(ax, [1], data.population, color = :steelblue)
     ax.title = data.state[1]  # Set title to state name
     ax.ylabel = "Population (M)"
-    # ax.xticks = []  # Remove x-axis ticks for cleaner look
+    ax.xticksvisible = false # Remove x-axis ticks for cleaner look
+    ax.xticklabelsvisible = false
     return nothing
 end
+
 
 barplot_fn(
     subset(sample_data, :state => s -> s .== "CA")
@@ -81,6 +84,7 @@ try
         sample_data,
         :state,
         barplot_fn!;
+        link_axes = :both,
         figure_kwargs = (size = (1200, 800),),
         axis_kwargs = (titlesize = 14,)
     )
@@ -106,7 +110,8 @@ println("-"^65)
 try
     result2 = geofacet(
         sample_data, :state,
-        (ax, data) -> begin
+        (gl, data; axis_kwargs...) -> begin
+            ax = Axis(gl[1, 1]; axis_kwargs...)
             scatter!(
                 ax, data.gdp_per_capita, data.unemployment_rate,
                 color = :coral, markersize = 12
@@ -116,8 +121,14 @@ try
             ax.ylabel = "Unemployment (%)"
         end,
         link_axes = :both,  # Link both x and y axes
-        figure_kwargs = (size = (1400, 900),),
-        axis_kwargs = (titlesize = 12, xlabelsize = 10, ylabelsize = 10)
+        figure_kwargs = (size = (1800, 1200),),
+        axis_kwargs = (
+            titlesize = 12,
+            xlabelsize = 8,
+            ylabelsize = 8,
+            xticklabelsize = 6,
+            yticklabelsize = 6,
+        )
     )
 
     println("✅ Successfully created GDP vs unemployment scatter plot")
@@ -140,7 +151,7 @@ println("-"^50)
 try
     # Create time series data
     years = 2010:2023
-    time_data = DataFrame()
+    all_state_data = DataFrame[]
 
     for state in sample_data.state[1:10]  # Use first 10 states for cleaner demo
         base_pop = sample_data[sample_data.state .== state, :population][1]
@@ -148,15 +159,20 @@ try
 
         state_data = DataFrame(
             state = fill(state, length(years)),
-            year = years,
+            year = collect(years),
             population = [base_pop * (1 + growth_rate)^(y - 2023) for y in years]
         )
-        time_data = vcat(time_data, state_data)
+
+        # Add this state's data to our collection
+        push!(all_state_data, state_data)
     end
 
+    time_series_data = vcat(all_state_data...)
+
     result3 = geofacet(
-        time_data, :state,
-        (ax, data) -> begin
+        time_series_data, :state,
+        (gl, data; axis_kwargs...) -> begin
+            ax = Axis(gl[1, 1]; axis_kwargs...)
             lines!(
                 ax, data.year, data.population,
                 color = :darkgreen, linewidth = 2
@@ -166,7 +182,14 @@ try
             ax.ylabel = "Population (M)"
         end,
         link_axes = :y,  # Link y-axes for comparison
-        figure_kwargs = (size = (1200, 800),)
+        figure_kwargs = (size = (1200, 800),),
+        axis_kwargs = (
+            titlesize = 14,
+            xlabelsize = 12,
+            ylabelsize = 12,
+            xticklabelsize = 10,
+            yticklabelsize = 10,
+        )
     )
 
     println("✅ Successfully created time series plot")
@@ -196,7 +219,8 @@ try
     # This should handle missing regions gracefully
     result4 = geofacet(
         error_data, :state,
-        (ax, data) -> begin
+        (gl, data; axis_kwargs...) -> begin
+            ax = Axis(gl[1, 1]; axis_kwargs...)
             barplot!(ax, [1], data.value, color = :orange)
             ax.title = data.state[1]
         end,
@@ -228,4 +252,3 @@ println("  - Modify the plot functions to create different visualizations")
 println("  - Try different grid layouts (us_state_grid1, us_state_grid2, etc.)")
 println("  - Experiment with axis linking options (:none, :x, :y, :both)")
 println("  - Add your own data and create custom geofaceted plots!")
-
