@@ -5,13 +5,13 @@ using Makie
 
 @testset "GeoFacetMakie.jl" begin
     # Include all test files
-    include("test_package_loading.jl")
-    include("test_geogrid_construction.jl")
-    include("test_geogrid_validation.jl")
-    include("test_geogrid_querying.jl")
-    include("test_geogrid_edge_cases.jl")
-    include("test_grid_loading.jl")
-    include("test_geofacet.jl")
+    include("package_loading.jl")
+    include("geogrid_construction.jl")
+    include("geogrid_validation.jl")
+    include("geogrid_querying.jl")
+    include("geogrid_edge_cases.jl")
+    include("grid_loading.jl")
+    include("geofacet.jl")
 end
 # TODO: Re-enable once core functionality is complete
 # using JET
@@ -23,5 +23,3 @@ end
 #     import Aqua
 #     Aqua.test_all(GeoFacetMakie)
 # end
-
-
