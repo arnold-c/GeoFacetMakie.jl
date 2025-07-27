@@ -463,4 +463,132 @@ using GeoFacetMakie
             @test !isnothing(result.grid_layout)
         end
     end
+
+    @testset "Decoration Hiding" begin
+        # Test hide_inner_decorations parameter
+        @test_nowarn geofacet(sample_data, :state, simple_plot_func!; hide_inner_decorations = true)
+        @test_nowarn geofacet(sample_data, :state, simple_plot_func!; hide_inner_decorations = false)
+
+        # Test that decoration hiding works with different link_axes settings
+        @test_nowarn geofacet(
+            sample_data, :state, simple_plot_func!;
+            link_axes = :none, hide_inner_decorations = true
+        )
+        @test_nowarn geofacet(
+            sample_data, :state, simple_plot_func!;
+            link_axes = :x, hide_inner_decorations = true
+        )
+        @test_nowarn geofacet(
+            sample_data, :state, simple_plot_func!;
+            link_axes = :y, hide_inner_decorations = true
+        )
+        @test_nowarn geofacet(
+            sample_data, :state, simple_plot_func!;
+            link_axes = :both, hide_inner_decorations = true
+        )
+
+        # Test with a simple 2x2 grid to verify decoration logic
+        #   A B
+        #   C D
+        simple_grid = GeoGrid(
+            "test", Dict(
+                "A" => (1, 1), "B" => (1, 2),
+                "C" => (2, 1), "D" => (2, 2)
+            )
+        )
+        simple_data = DataFrame(
+            state = ["A", "B", "C", "D"],
+            value = [1, 2, 3, 4]
+        )
+
+        # Track which axis_kwargs are passed to each region
+        received_kwargs = Dict{String, Any}()
+        function kwargs_tracking_plot_func!(gl, data; axis_kwargs...)
+            received_kwargs[data.state[1]] = axis_kwargs
+            ax = Axis(gl[1, 1]; axis_kwargs...)
+            scatter!(ax, [1], data.value)
+            return nothing
+        end
+
+        # Test with x-axis linking - should hide x decorations for regions with neighbors below
+        empty!(received_kwargs)
+        geofacet(
+            simple_data, :state, kwargs_tracking_plot_func!;
+            grid = simple_grid, link_axes = :x, hide_inner_decorations = true
+        )
+
+        @test haskey(received_kwargs, "A")
+        @test haskey(received_kwargs, "B")
+        @test haskey(received_kwargs, "C")
+        @test haskey(received_kwargs, "D")
+
+        # A and B should have x decorations hidden (they have neighbors below)
+        @test received_kwargs["A"] == pairs((xticksvisible = 0, xticklabelsvisible = 0, xlabelvisible = 0))
+        @test received_kwargs["B"] == pairs((xticksvisible = 0, xticklabelsvisible = 0, xlabelvisible = 0))
+        @test received_kwargs["C"] == pairs(())
+        @test received_kwargs["D"] == pairs(())
+
+        # Test with y-axis linking - should hide y decorations for regions with neighbors to the left
+        empty!(received_kwargs)
+        geofacet(
+            simple_data, :state, kwargs_tracking_plot_func!;
+            grid = simple_grid, link_axes = :y, hide_inner_decorations = true
+        )
+
+        # B and D should have y decorations hidden (they have neighbors to the left)
+        @test received_kwargs["A"] == pairs(())
+        @test received_kwargs["B"] == pairs((yticksvisible = 0, yticklabelsvisible = 0, ylabelvisible = 0))
+        @test received_kwargs["C"] == pairs(())
+        @test received_kwargs["D"] == pairs((yticksvisible = 0, yticklabelsvisible = 0, ylabelvisible = 0))
+
+
+        # Test with no linking - should not hide any decorations
+        empty!(received_kwargs)
+        geofacet(
+            simple_data, :state, kwargs_tracking_plot_func!;
+            grid = simple_grid, link_axes = :none, hide_inner_decorations = true
+        )
+
+        # No decorations should be hidden when axes are not linked
+        @test received_kwargs["A"] == pairs(())
+        @test received_kwargs["B"] == pairs(())
+        @test received_kwargs["C"] == pairs(())
+        @test received_kwargs["D"] == pairs(())
+
+        # Test with both linking
+        empty!(received_kwargs)
+        geofacet(
+            simple_data, :state, kwargs_tracking_plot_func!;
+            grid = simple_grid, link_axes = :both, hide_inner_decorations = true
+        )
+
+        # A and B should have x decorations hidden (they have neighbors below)
+        # B and D should have y decorations hidden (they have neighbors to the left)
+        @test received_kwargs["A"] == pairs((xticksvisible = 0, xticklabelsvisible = 0, xlabelvisible = 0))
+        @test received_kwargs["B"] == pairs(
+            (
+                xticksvisible = 0,
+                xticklabelsvisible = 0,
+                xlabelvisible = 0,
+                yticksvisible = 0,
+                yticklabelsvisible = 0,
+                ylabelvisible = 0,
+            )
+        )
+        @test received_kwargs["C"] == pairs(())
+        @test received_kwargs["D"] == pairs((yticksvisible = 0, yticklabelsvisible = 0, ylabelvisible = 0))
+
+        # Test with no inner decoration hiding
+        empty!(received_kwargs)
+        geofacet(
+            simple_data, :state, kwargs_tracking_plot_func!;
+            grid = simple_grid, link_axes = :both, hide_inner_decorations = false
+        )
+
+        # No decorations should be hidden when axes are not linked
+        @test received_kwargs["A"] == pairs(())
+        @test received_kwargs["B"] == pairs(())
+        @test received_kwargs["C"] == pairs(())
+        @test received_kwargs["D"] == pairs(())
+    end
 end
