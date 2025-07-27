@@ -78,6 +78,18 @@ barplot_fn(
 )
 
 #%%
+# FIX: Doesn't plot the y axis label
+geofacet(
+    sample_data,
+    :state,
+    barplot_fn!;
+    link_axes = :both,
+    figure_kwargs = (size = (1200, 800),),
+    axis_kwargs = (titlesize = 14, ylabel = "Population (M)"),
+    hide_inner_decorations = false
+).figure
+
+#%%
 try
     result1 = geofacet(
         sample_data,
@@ -85,7 +97,8 @@ try
         barplot_fn!;
         link_axes = :both,
         figure_kwargs = (size = (1200, 800),),
-        axis_kwargs = (titlesize = 14, ylabel = "Population (M)")
+        axis_kwargs = (titlesize = 14, ylabel = "Population (M)"),
+        hide_inner_decorations = false
     )
 
     println("✅ Successfully created population bar plot")

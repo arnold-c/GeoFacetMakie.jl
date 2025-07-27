@@ -204,6 +204,7 @@ function geofacet(
     end
 
     # Group data by region column
+    # TODO: update when change function to return gdf
     grouped_data = _group_data_by_region(data, region_col_sym)
 
     # Get grid dimensions
@@ -218,12 +219,13 @@ function geofacet(
     grid_layout = fig[1, 1] = GridLayout()
 
     # Create axes dictionary and data mapping
+    # TODO: delete these
     gl_dict = Dict{String, GridLayout}()
     data_mapping = Dict{String, Any}()
 
     # Handle missing regions check
     if missing_regions == :error
-        grid_regions = Set(keys(grid.positions))
+        grid_regions = Set(grid.region)
         data_regions = Set(string.(data[!, region_col_sym]))
         missing_from_data = setdiff(grid_regions, data_regions)
         if !isempty(missing_from_data)
@@ -241,18 +243,19 @@ function geofacet(
         # Create a filtered grid containing only positions that have data
         # This is used for neighbor detection to ensure axis decorations are only hidden
         # when there are actual neighboring plots with data
-        data_only_positions = Dict{String, Tuple{Int, Int}}()
-        for (region_code, position) in grid.positions
-            region_data = _find_region_data(grouped_data, region_code)
+        data_entries = GridEntry[]
+        for entry in grid
+            region_data = _find_region_data(grouped_data, entry.region)
             if !isnothing(region_data)
-                data_only_positions[region_code] = position
+                push!(data_entries, entry)
             end
         end
-        GeoGrid(grid.name * "_data_only", data_only_positions)
+        StructArray(data_entries)
     end
 
     # Create axes for all grid positions
-    for (region_code, (row, col)) in grid.positions
+    for entry in grid
+        region_code, row, col = entry.region, entry.row, entry.col
         # Create axis at grid position
         gl = GridLayout(grid_layout[row, col])
         gl_dict[region_code] = gl
@@ -319,6 +322,8 @@ function geofacet(
         )
 
         # Check if we have data for this region
+        # TODO: update when change grouped_data to a gdf.
+        # Instead of returning data, just return bool
         region_data = _find_region_data(grouped_data, region_code)
 
         if !isnothing(region_data)
@@ -328,6 +333,7 @@ function geofacet(
             # Execute plot function with error handling
             try
                 # For backward compatibility, if axis_kwargs_list is empty, pass the first kwargs as axis_kwargs
+                # FIX: Should pass first item of list if axis_kwargs passed
                 if isempty(axis_kwargs_list)
                     plot_func(gl, region_data; processed_axis_kwargs_list[1]...)
                 else
@@ -346,7 +352,9 @@ function geofacet(
         end
     end
 
-    # Apply axis linking - link same-position axes across facets
+    # Apply axis linking
+    # TODO: update axis linking when delete gl_dict to access directly from figure
+    # Just need to ensure only accessing GLs that exist and weren't skipped
     if link_axes != :none && !isempty(gl_dict)
         gl_list = collect(values(gl_dict))
         axes_by_position = collect_gl_axes_by_position(gl_list)
@@ -366,6 +374,7 @@ function geofacet(
         end
     end
 
+    # TODO: Just return the figure
     return (
         figure = fig,
         gls = gl_dict,
@@ -374,6 +383,7 @@ function geofacet(
     )
 end
 
+# TODO: Implement just as grouped df. No need to save region codes.
 """
     _group_data_by_region(data, region_col)
 
@@ -395,6 +405,9 @@ function _group_data_by_region(data, region_col)
     return result
 end
 
+# TODO: Update to work with gdf. Should just pass a Set of the unique region codes in the gdf.
+# Retain checking for spelling/case.
+# Return a bool instead of data
 """
     _find_region_data(grouped_data, region_code)
 

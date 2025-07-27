@@ -237,7 +237,7 @@ geofacet(
              ylabelcolor = :firebrick, yticklabelcolor = :firebrick)
         ],
 		link_axes = :both,  # Link x-axes for time comparison
-		missing_regions = :empty
+		missing_regions = :skip
 	).figure
 
 #%%

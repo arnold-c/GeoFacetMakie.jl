@@ -11,12 +11,12 @@ Get the dimensions of a grid as (max_row, max_col).
 Returns (0, 0) for empty grids.
 """
 function grid_dimensions(grid::GeoGrid)
-    if isempty(grid.positions)
+    if isempty(grid)
         return (0, 0)
     end
 
-    max_row = maximum(pos[1] for pos in values(grid.positions))
-    max_col = maximum(pos[2] for pos in values(grid.positions))
+    max_row = maximum(grid.row)
+    max_col = maximum(grid.col)
     return (max_row, max_col)
 end
 
@@ -29,12 +29,13 @@ Returns `true` if valid, throws `ArgumentError` if conflicts exist.
 function validate_grid(grid::GeoGrid)
     position_to_region = Dict{Tuple{Int, Int}, String}()
 
-    for (region, position) in grid.positions
+    for entry in grid
+        position = (entry.row, entry.col)
         if haskey(position_to_region, position)
             existing_region = position_to_region[position]
-            throw(ArgumentError("Position conflict: regions '$existing_region' and '$region' both at position $position"))
+            throw(ArgumentError("Position conflict: regions '$existing_region' and '$(entry.region)' both at position $position"))
         end
-        position_to_region[position] = region
+        position_to_region[position] = entry.region
     end
 
     return true
@@ -46,7 +47,7 @@ end
 Check if a region exists in the grid.
 """
 function has_region(grid::GeoGrid, region::String)
-    return haskey(grid.positions, region)
+    return region in grid.region
 end
 
 """
@@ -56,7 +57,8 @@ Get the position of a region in the grid.
 Returns `nothing` if the region doesn't exist.
 """
 function get_position(grid::GeoGrid, region::String)
-    return get(grid.positions, region, nothing)
+    idx = findfirst(==(region), grid.region)
+    return isnothing(idx) ? nothing : (grid.row[idx], grid.col[idx])
 end
 
 """
@@ -66,12 +68,8 @@ Get the region name at a specific grid position.
 Returns `nothing` if no region exists at that position.
 """
 function get_region_at(grid::GeoGrid, row::Int, col::Int)
-    for (region, (r, c)) in grid.positions
-        if r == row && c == col
-            return region
-        end
-    end
-    return nothing
+    idx = findfirst(i -> grid.row[i] == row && grid.col[i] == col, eachindex(grid))
+    return isnothing(idx) ? nothing : grid.region[idx]
 end
 
 """
@@ -80,7 +78,7 @@ end
 Get all region names in the grid.
 """
 function get_regions(grid::GeoGrid)
-    return collect(keys(grid.positions))
+    return grid.region
 end
 
 """
@@ -89,13 +87,13 @@ end
 Check if the grid forms a complete rectangle (no missing cells).
 """
 function is_complete_rectangle(grid::GeoGrid)
-    if isempty(grid.positions)
+    if isempty(grid)
         return true  # Empty grid is technically complete
     end
 
     max_row, max_col = grid_dimensions(grid)
     expected_cells = max_row * max_col
-    actual_cells = length(grid.positions)
+    actual_cells = length(grid)
 
     return expected_cells == actual_cells
 end
@@ -111,13 +109,8 @@ function has_neighbor_below(grid::GeoGrid, region::String)
     isnothing(pos) && return false
     row, col = pos
 
-    # Check if any region exists in the same column with row > current_row
-    for (_, (r, c)) in grid.positions
-        if c == col && r > row
-            return true
-        end
-    end
-    return false
+    # Use vectorized operations for efficiency
+    return any((grid.col .== col) .& (grid.row .> row))
 end
 
 """
@@ -131,13 +124,8 @@ function has_neighbor_left(grid::GeoGrid, region::String)
     isnothing(pos) && return false
     row, col = pos
 
-    # Check if any region exists in the same row with col < current_col
-    for (_, (r, c)) in grid.positions
-        if r == row && c < col
-            return true
-        end
-    end
-    return false
+    # Use vectorized operations for efficiency
+    return any((grid.row .== row) .& (grid.col .< col))
 end
 
 """
@@ -151,13 +139,8 @@ function has_neighbor_right(grid::GeoGrid, region::String)
     isnothing(pos) && return false
     row, col = pos
 
-    # Check if any region exists in the same row with col > current_col
-    for (_, (r, c)) in grid.positions
-        if r == row && c > col
-            return true
-        end
-    end
-    return false
+    # Use vectorized operations for efficiency
+    return any((grid.row .== row) .& (grid.col .> col))
 end
 
 """
@@ -171,11 +154,6 @@ function has_neighbor_above(grid::GeoGrid, region::String)
     isnothing(pos) && return false
     row, col = pos
 
-    # Check if any region exists in the same column with row < current_row
-    for (_, (r, c)) in grid.positions
-        if c == col && r < row
-            return true
-        end
-    end
-    return false
+    # Use vectorized operations for efficiency
+    return any((grid.col .== col) .& (grid.row .< row))
 end

@@ -45,18 +45,12 @@ function load_grid_from_csv(csv_path::String)
             throw(ArgumentError("Missing required columns: $(join(missing_cols, ", "))"))
         end
         
-        # Create positions dictionary: code -> (row, col)
-        positions = Dict{String, Tuple{Int, Int}}()
-        
-        for row in eachrow(df)
-            code = string(row.code)
-            positions[code] = (row.row, row.col)
-        end
-        
-        # Extract grid name from filename
-        grid_name = splitext(basename(csv_path))[1]
-        
-        return GeoGrid(grid_name, positions)
+        # Create StructArray directly from DataFrame columns
+        return StructArray{GridEntry}((
+            region = string.(df.code),
+            row = df.row,
+            col = df.col
+        ))
         
     catch e
         if isa(e, ArgumentError)
