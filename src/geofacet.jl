@@ -327,18 +327,22 @@ function geofacet(
         end
     end
 
-    # Apply axis linking
+    # Apply axis linking - link same-position axes across facets
     if link_axes != :none && !isempty(gl_dict)
         gl_list = collect(values(gl_dict))
-        gl_axes = collect_gl_axes(gl_list)
-        if !isempty(gl_axes)
-            if link_axes == :x
-                linkxaxes!(gl_axes...)
-            elseif link_axes == :y
-                linkyaxes!(gl_axes...)
-            elseif link_axes == :both
-                linkxaxes!(gl_axes...)
-                linkyaxes!(gl_axes...)
+        axes_by_position = collect_gl_axes_by_position(gl_list)
+
+        # Link each position's axes separately
+        for position_axes in axes_by_position
+            if !isempty(position_axes)
+                if link_axes == :x
+                    linkxaxes!(position_axes...)
+                elseif link_axes == :y
+                    linkyaxes!(position_axes...)
+                elseif link_axes == :both
+                    linkxaxes!(position_axes...)
+                    linkyaxes!(position_axes...)
+                end
             end
         end
     end
@@ -421,6 +425,53 @@ function collect_gl_axes(layouts::Vector{L}) where {L <: GridLayout}
 end
 
 """
+    collect_gl_axes_by_position(layouts)
+
+Collect axes from GridLayouts grouped by their position (creation order).
+Returns a vector where each element contains all axes at that position across all facets.
+
+# Arguments
+- `layouts`: Vector of GridLayout objects from different facets
+
+# Returns
+Vector{Vector{Axis}} where result[i] contains all axes at position i across facets
+"""
+function collect_gl_axes_by_position(layouts::Vector{L}) where {L <: GridLayout}
+    # Dictionary to store axes by their creation order within each layout
+    axes_by_position = Dict{Int, Vector{Axis}}()
+
+    for layout in layouts
+        layout_axes = _collect_axes_ordered(layout)
+        for (pos, axis) in enumerate(layout_axes)
+            if !haskey(axes_by_position, pos)
+                axes_by_position[pos] = Axis[]
+            end
+            push!(axes_by_position[pos], axis)
+        end
+    end
+
+    # Convert to vector, ensuring consistent ordering
+    if isempty(axes_by_position)
+        return Vector{Axis}[]
+    end
+
+    max_position = maximum(keys(axes_by_position))
+    return [get(axes_by_position, i, Axis[]) for i in 1:max_position]
+end
+
+"""
+    _collect_axes_ordered(layout)
+
+Collect axes from a GridLayout in the order they appear in the grid.
+This ensures consistent ordering across facets.
+"""
+function _collect_axes_ordered(layout::GridLayout)
+    axes = Axis[]
+    _collect_axes_recursive_ordered!(axes, layout)
+    return axes
+end
+
+"""
     _collect_axes_recursive!(axes, layout)
 
 Recursively collect all Axis objects from a GridLayout, including nested GridLayouts.
@@ -432,6 +483,27 @@ function _collect_axes_recursive!(axes::Vector{Axis}, layout::GridLayout)
         elseif content.content isa GridLayout
             # Recursively search nested GridLayouts
             _collect_axes_recursive!(axes, content.content)
+        end
+    end
+    return nothing
+end
+
+"""
+    _collect_axes_recursive_ordered!(axes, layout)
+
+Recursively collect all Axis objects from a GridLayout in grid position order.
+This ensures consistent ordering of axes across different facets.
+"""
+function _collect_axes_recursive_ordered!(axes::Vector{Axis}, layout::GridLayout)
+    # Sort content by grid position to ensure consistent ordering
+    sorted_content = sort(layout.content, by = c -> (c.span.rows.start, c.span.cols.start))
+
+    for content in sorted_content
+        if content.content isa Axis
+            push!(axes, content.content)
+        elseif content.content isa GridLayout
+            # Recursively search nested GridLayouts
+            _collect_axes_recursive_ordered!(axes, content.content)
         end
     end
     return nothing

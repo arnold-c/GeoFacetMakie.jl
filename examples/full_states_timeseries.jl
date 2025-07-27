@@ -236,7 +236,8 @@ geofacet(
             (yaxisposition = :right, ylabel = "GDP per capita (\$)",
              ylabelcolor = :firebrick, yticklabelcolor = :firebrick)
         ],
-		link_axes = :both  # Link x-axes for time comparison
+		link_axes = :both,  # Link x-axes for time comparison
+		missing_regions = :empty
 	).figure
 
 #%%
