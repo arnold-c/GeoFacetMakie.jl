@@ -53,25 +53,27 @@ The [R geofacet package](https://hafen.github.io/geofacet/) by Ryan Hafen provid
 
 ## Architecture Overview
 
-### Core Components
+### Current Project Structure
 
 ```
 GeoFacetMakie.jl
-├── Core/
-│   ├── GeoGrid.jl          # Grid definition structures
-│   ├── DataInterface.jl    # DataFrames integration
-│   └── LayoutEngine.jl     # Makie layout generation
-├── Grids/
-│   ├── USStates.jl         # US state grid definitions
-│   ├── EUCountries.jl      # European Union grids
-│   └── CustomGrids.jl      # Custom grid utilities
-├── Plotting/
-│   ├── GeoFacet.jl         # Main plotting interface
-│   ├── PlotTypes.jl        # Supported plot types
-│   └── Theming.jl          # Styling and themes
-└── Utils/
-    ├── Validation.jl       # Input validation
-    └── Helpers.jl          # Utility functions
+├── src/
+│   ├── GeoFacetMakie.jl    # Main module file
+│   ├── structs.jl          # Core data structures (GeoGrid)
+│   ├── grid_operations.jl  # Grid utility functions
+│   ├── grid_loader.jl      # CSV grid loading functionality
+│   ├── geofacet.jl         # Main plotting interface
+│   └── data/grids/         # Predefined grid CSV files
+│       ├── us_state_grid1.csv
+│       ├── us_state_grid2.csv
+│       ├── us_state_grid3.csv
+│       ├── us_state_without_DC_grid1.csv
+│       ├── us_state_without_DC_grid2.csv
+│       ├── us_state_without_DC_grid3.csv
+│       └── us_state_contiguous_grid1.csv
+├── test/                   # Comprehensive test suite
+├── examples/               # Example scripts and outputs
+└── docs/                   # Documentation
 ```
 
 ### Data Flow
@@ -94,28 +96,27 @@ Final Geofaceted Figure
 
 ### Core Data Structures
 
-#### GeoGrid
+#### GeoGrid (Current Implementation)
 ```julia
 struct GeoGrid
     name::String
-    description::String
     positions::Dict{String, Tuple{Int, Int}}  # entity_name -> (row, col)
-    dimensions::Tuple{Int, Int}               # (max_rows, max_cols)
-    metadata::Dict{String, Any}               # additional information
+
+    # Constructor with validation:
+    # - Region names cannot be empty or whitespace-only
+    # - Grid positions must be positive integers (≥ 1)
+    # - No two regions can occupy the same position
 end
 ```
 
-#### GeoFacetSpec
-```julia
-struct GeoFacetSpec
-    grid::GeoGrid
-    entity_column::Symbol
-    plot_function::Function
-    shared_axes::Bool
-    show_missing::Bool
-    custom_labels::Dict{String, String}
-end
-```
+**Available Grid Operations:**
+- `grid_dimensions(grid)` - Get (max_row, max_col)
+- `validate_grid(grid)` - Check for position conflicts
+- `has_region(grid, region)` - Check if region exists
+- `get_position(grid, region)` - Get position of region
+- `get_region_at(grid, row, col)` - Get region at position
+- `get_regions(grid)` - Get all region names
+- `is_complete_rectangle(grid)` - Check if grid is complete rectangle
 
 ### API Design
 
@@ -209,20 +210,25 @@ end
 create_unified_legend(fig, plot_objects, :right)
 ```
 
-#### Grid Management
+#### Grid Management (Current Implementation)
 ```julia
-# List available grids
-list_grids()
+# List available predefined grids
+available_grids = list_available_grids()
 
-# Get specific grid
-grid = get_grid(:us_state_grid2)
+# Load specific predefined grids
+us_grid = load_us_state_grid(1)  # versions 1, 2, or 3
+us_no_dc = load_us_state_grid_without_dc(1)
+contiguous = load_us_contiguous_grid()
 
-# Create custom grid
-custom_grid = create_grid("my_regions",
-                         Dict("North" => (1, 1),
-                              "South" => (2, 1),
-                              "East" => (1, 2),
-                              "West" => (2, 2)))
+# Load any grid by name
+grid = load_grid("us_state_grid2")
+
+# Load custom grid from CSV
+custom_grid = load_grid_from_csv("path/to/custom.csv")
+
+# Create grid programmatically
+positions = Dict("CA" => (1, 1), "NY" => (1, 2), "TX" => (2, 1))
+custom_grid = GeoGrid("my_regions", positions)
 ```
 
 ### Integration with DataFrames.jl
@@ -299,66 +305,61 @@ end
 
 ## Implementation Plan
 
-### Phase 1: Foundation (Weeks 1-2)
+### Phase 1: Foundation ✅ COMPLETED
 **Goal**: Establish core infrastructure and basic functionality
 
-**Tasks**:
-1. **Project Setup**
-   - Initialize Julia package structure
-   - Set up testing framework (using Test.jl)
-   - Configure CI/CD pipeline
-   - Create basic documentation structure
+**Completed Tasks**:
+1. **Project Setup** ✅
+   - Julia package structure initialized
+   - Testing framework set up (Test.jl, JET.jl, Aqua.jl)
+   - CI/CD pipeline configured (GitHub Actions)
+   - Documentation structure created
 
-2. **Core Data Structures**
-   - Implement `GeoGrid` struct and basic operations
-   - Create validation functions for grid definitions
-   - Implement grid serialization/deserialization
+2. **Core Data Structures** ✅
+   - `GeoGrid` struct implemented with validation
+   - Grid operations functions created (grid_operations.jl)
+   - CSV loading functionality implemented
 
-3. **Basic US States Grid**
-   - Define primary US states grid layout
-   - Include all 50 states + DC in logical positions
-   - Add metadata (state codes, regions, etc.)
+3. **US States Grids** ✅
+   - Multiple US state grid layouts (versions 1, 2, 3)
+   - Variants: with/without DC, contiguous states only
+   - All grids stored as CSV files in src/data/grids/
 
-4. **Simple DataFrames Integration**
-   - Basic groupby functionality
-   - Entity name matching and validation
-   - Handle missing entities gracefully
+4. **Grid Loading Infrastructure** ✅
+   - CSV parsing with validation
+   - Predefined grid loading functions
+   - Grid listing and discovery functionality
 
-**Deliverables**:
+**Deliverables** ✅:
 - Working `GeoGrid` implementation
-- Basic US states grid definition
-- Simple data grouping functionality
-- Initial test suite
+- Multiple US state grid definitions
+- Comprehensive grid loading system
+- Extensive test suite covering all functionality
 
-### Phase 2: Core Plotting (Weeks 3-4)
-**Goal**: Implement basic geofaceting with line plots
+### Phase 2: Core Plotting 🚧 IN PROGRESS
+**Goal**: Implement basic geofaceting with plotting functionality
 
-**Tasks**:
-1. **Layout Engine**
-   - Convert `GeoGrid` to Makie `GridLayout`
-   - Handle empty positions and irregular shapes
-   - Implement automatic sizing and spacing
+**Current Status**:
+1. **Basic Plotting Interface** ✅
+   - `geofacet()` function implemented in geofacet.jl
+   - Function-passing approach for user-defined plotting
+   - Basic error handling and validation
 
-2. **Basic Plotting Interface**
-   - Implement `geofacet()` function for line plots
-   - Support for basic customization options
-   - Error handling and user feedback
+2. **Layout Engine** 🚧
+   - Makie Figure and GridLayout integration
+   - Support for irregular grids with empty positions
+   - Axis creation and management
 
-3. **Axis Management**
-   - Shared vs. independent axes options
-   - Automatic axis labeling and scaling
-   - Handle missing data gracefully
+3. **Examples and Testing** ✅
+   - Basic examples in examples/ directory
+   - Test suite covering geofacet functionality
+   - Sample data and plotting functions
 
-4. **First Working Examples**
-   - Recreate basic examples from R geofacet
-   - US unemployment data over time
-   - State population trends
-
-**Deliverables**:
-- Working `geofacet()` function for line plots
-- Makie GridLayout integration
-- Basic examples and documentation
-- Expanded test coverage
+**Next Tasks**:
+- Complete axis coordination (shared vs. independent)
+- Enhanced error handling and user feedback
+- Performance optimization for large datasets
+- Additional plot type support beyond basic functions
 
 ### Phase 3: Enhanced Functionality (Weeks 5-6)
 **Goal**: Add multiple plot types and customization options
@@ -436,9 +437,9 @@ end
 
 ### Compatibility Requirements
 
-- **Julia Versions**: Support Julia 1.6+ (LTS and current)
-- **Makie Backends**: Full compatibility with CairoMakie, GLMakie, WGLMakie
-- **DataFrames.jl**: Support current and recent versions
+- **Julia Versions**: Support Julia 1.10+ (as specified in Project.toml)
+- **Makie Backends**: Full compatibility with CairoMakie, GLMakie (current dependencies)
+- **DataFrames.jl**: Support version 1+ (as specified in Project.toml)
 - **Cross-Platform**: Windows, macOS, Linux support
 
 ### Error Handling Strategy
