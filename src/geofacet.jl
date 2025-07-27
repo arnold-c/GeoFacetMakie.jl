@@ -207,18 +207,12 @@ function geofacet(
                 @warn "Error plotting region $region_code: $e"
                 # Continue with other regions
             end
-        else
+        elseif missing_regions == :empty
             # No data for this region
-            if missing_regions == :empty
-                # Create empty axis with region label
-                ax = Axis(gl[1, 1]; region_axis_kwargs...)
-                text!(ax, 0.5, 0.5, text = region_code, align = (:center, :center))
-                xlims!(ax, 0, 1)
-                ylims!(ax, 0, 1)
-            elseif missing_regions == :skip
-                # Leave GridLayout empty
-                # No need to do anything - GridLayout will remain empty
-            end
+            # Create empty axis with region label
+            ax = Axis(gl[1, 1]; title = region_code, region_axis_kwargs...)
+        elseif missing_regions == :skip
+            continue
         end
     end
 
