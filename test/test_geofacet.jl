@@ -19,9 +19,17 @@ using GeoFacetMakie
         cases = [100, 110, 120, 200, 210, 220, 150, 160, 170]
     )
 
-    # Simple plot function for testing
-    simple_plot_func = (ax, data) -> scatter!(ax, [1], data.value)
-    line_plot_func = (ax, data) -> lines!(ax, data.date, data.cases)
+    # Simple plot function for testing (updated for GridLayout API)
+    simple_plot_func = (gl, data; axis_kwargs...) -> begin
+        ax = Axis(gl[1, 1]; axis_kwargs...)
+        scatter!(ax, [1], data.value)
+        return nothing
+    end
+    line_plot_func = (gl, data; axis_kwargs...) -> begin
+        ax = Axis(gl[1, 1]; axis_kwargs...)
+        lines!(ax, data.date, data.cases)
+        return nothing
+    end
 
     @testset "Basic Function Signature" begin
         @test_nowarn geofacet(sample_data, :state, simple_plot_func)
@@ -32,11 +40,11 @@ using GeoFacetMakie
         # Test return type structure
         result = geofacet(sample_data, :state, simple_plot_func)
         @test haskey(result, :figure)
-        @test haskey(result, :axes)
+        @test haskey(result, :gls)  # Changed from :axes to :gls
         @test haskey(result, :grid_layout)
         @test haskey(result, :data_mapping)
         @test isa(result.figure, Figure)
-        @test isa(result.axes, Dict)
+        @test isa(result.gls, Dict)  # Changed from :axes to :gls
         @test isa(result.grid_layout, GridLayout)
         @test isa(result.data_mapping, Dict)
     end
@@ -48,8 +56,8 @@ using GeoFacetMakie
         @test length(result.data_mapping) == 5  # 5 states in sample data
         @test all(state in keys(result.data_mapping) for state in ["CA", "TX", "NY", "FL", "WA"])
 
-        # Check that axes were created for data regions
-        @test all(state in keys(result.axes) for state in ["CA", "TX", "NY", "FL", "WA"])
+        # Check that GridLayouts were created for data regions
+        @test all(state in keys(result.gls) for state in ["CA", "TX", "NY", "FL", "WA"])
     end
 
     @testset "Grid Integration" begin
@@ -71,9 +79,11 @@ using GeoFacetMakie
     @testset "Plot Function Execution" begin
         # Test that plot function is called for each region
         plot_calls = String[]
-        tracking_plot_func = (ax, data) -> begin
+        tracking_plot_func = (gl, data; axis_kwargs...) -> begin
             push!(plot_calls, data.state[1])  # Track which state was plotted
+            ax = Axis(gl[1, 1]; axis_kwargs...)
             scatter!(ax, [1], data.value)
+            return nothing
         end
 
         result = geofacet(sample_data, :state, tracking_plot_func)
@@ -94,10 +104,10 @@ using GeoFacetMakie
             sample_data, :state, simple_plot_func,
             axis_kwargs = (ylabel = "Test Label",)
         )
-        # Check that axes were created with the specified kwargs
-        @test length(result2.axes) > 0
-        # Check that at least one axis has the ylabel set
-        @test any(ax -> ax.ylabel[] == "Test Label", values(result2.axes))
+        # Check that GridLayouts were created with the specified kwargs
+        @test length(result2.gls) > 0
+        # Note: axis_kwargs are passed to the plot function, so we can't directly test them here
+        # The plot function is responsible for using them when creating axes
     end
 
     @testset "Axis Linking" begin
@@ -131,9 +141,9 @@ using GeoFacetMakie
         @test haskey(result1.data_mapping, "CA")
         @test haskey(result1.data_mapping, "TX")
 
-        # Test empty axes for missing regions
+        # Test empty GridLayouts for missing regions
         result2 = geofacet(limited_data, :state, simple_plot_func, missing_regions = :empty)
-        @test length(result2.axes) >= 2  # Should have axes for grid positions
+        @test length(result2.gls) >= 2  # Should have GridLayouts for grid positions
 
         # Test error on missing regions
         @test_throws Exception geofacet(limited_data, :state, simple_plot_func, missing_regions = :error)
@@ -148,13 +158,13 @@ using GeoFacetMakie
         @test_throws Exception geofacet(empty_data, :state, simple_plot_func)
 
         # Test plot function that throws error - should handle gracefully with warnings
-        error_plot_func = (ax, data) -> error("Test error in plot function")
+        error_plot_func = (gl, data; axis_kwargs...) -> error("Test error in plot function")
         # Our implementation catches plot errors and continues, which is better behavior
         # Test that function completes and returns a result despite plot errors
         result = geofacet(sample_data, :state, error_plot_func)
         @test !isnothing(result)
         @test haskey(result, :figure)
-        @test haskey(result, :axes)
+        @test haskey(result, :gls)  # Changed from :axes to :gls
         # Data mapping should still be created even if plots fail
         @test length(result.data_mapping) == 5
     end
@@ -184,7 +194,11 @@ using GeoFacetMakie
 
     @testset "Different Plot Types" begin
         # Test with different plot functions
-        bar_plot_func = (ax, data) -> barplot!(ax, [1], data.value)
+        bar_plot_func = (gl, data; axis_kwargs...) -> begin
+            ax = Axis(gl[1, 1]; axis_kwargs...)
+            barplot!(ax, [1], data.value)
+            return nothing
+        end
         result1 = geofacet(sample_data, :state, bar_plot_func)
         @test !isnothing(result1.figure)
 
@@ -193,9 +207,11 @@ using GeoFacetMakie
         @test !isnothing(result2.figure)
 
         # Test with multiple series
-        multi_plot_func = (ax, data) -> begin
+        multi_plot_func = (gl, data; axis_kwargs...) -> begin
+            ax = Axis(gl[1, 1]; axis_kwargs...)
             lines!(ax, data.date, data.cases, color = :blue)
             scatter!(ax, data.date, data.cases, color = :red)
+            return nothing
         end
         result3 = geofacet(time_series_data, :state, multi_plot_func)
         @test !isnothing(result3.figure)
@@ -207,10 +223,10 @@ using GeoFacetMakie
         # Check that grid layout has appropriate structure
         @test !isnothing(result.grid_layout)
 
-        # Check that axes are positioned correctly in the grid
+        # Check that GridLayouts are positioned correctly in the grid
         # (This will depend on the specific implementation)
-        for (state, axis) in result.axes
-            @test isa(axis, Axis)
+        for (state, gl) in result.gls
+            @test isa(gl, GridLayout)
         end
     end
 
