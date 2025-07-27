@@ -175,12 +175,13 @@ function geofacet(
             # No data for this region
             if missing_regions == :empty
                 # Create empty axis with region label
+                ax = Axis(gl[1, 1])
                 text!(ax, 0.5, 0.5, text = region_code, align = (:center, :center))
                 xlims!(ax, 0, 1)
                 ylims!(ax, 0, 1)
             elseif missing_regions == :skip
-                # Leave axis empty
-                hide_all_decorations!(gl)
+                # Leave GridLayout empty
+                # No need to do anything - GridLayout will remain empty
             end
         end
     end
@@ -266,7 +267,7 @@ function hide_all_decorations!(layout::GridLayout)
     return nothing
 end
 
-function collect_gl_axes(layouts::Vector{GridLayout})
+function collect_gl_axes(layouts::Vector{L}) where {L <: GridLayout}
     axes = Axis[]
 
     for layout in layouts, content in layout.content
