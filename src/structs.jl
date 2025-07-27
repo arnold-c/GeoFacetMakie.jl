@@ -16,11 +16,67 @@ and its position coordinates.
 - `region::String`: Region identifier/code
 - `row::Int`: Grid row position (≥ 1)
 - `col::Int`: Grid column position (≥ 1)
+
+# Iteration and Indexing
+GridEntry supports iteration, unpacking, and indexing:
+```julia
+entry = GridEntry("CA", 1, 2)
+
+# Unpack all fields
+region, row, col = entry
+
+# Index access
+region = entry[1]  # "CA"
+row = entry[2]     # 1
+col = entry[3]     # 2
+
+# Iterate over fields
+for value in entry
+    println(value)  # Prints "CA", 1, 2
+end
+
+# Convert to array
+values = collect(entry)  # ["CA", 1, 2]
+
+# Functional style
+regions = map(e -> e[1], grid)  # Extract all regions
+```
 """
 struct GridEntry
     region::String
     row::Int
     col::Int
+
+    function GridEntry(region::String, row::Int, col::Int)
+        # Validate region name
+        if isempty(strip(region))
+            throw(ArgumentError("Region names cannot be empty or whitespace-only"))
+        end
+
+        # Validate positions are positive
+        if row <= 0 || col <= 0
+            throw(ArgumentError("Grid positions must be positive integers (≥ 1), got ($row, $col) for region '$region'"))
+        end
+
+        return new(region, row, col)
+    end
+end
+
+# Make GridEntry iterable to support unpacking: region, row, col = entry
+Base.iterate(entry::GridEntry) = (entry.region, 2)
+function Base.iterate(entry::GridEntry, state::Int)
+    return state == 2 ? (entry.row, 3) :
+        state == 3 ? (entry.col, 4) :
+        nothing
+end
+Base.length(::GridEntry) = 3
+
+# Add indexing support: entry[1] = region, entry[2] = row, entry[3] = col
+function Base.getindex(entry::GridEntry, i::Int)
+    return i == 1 ? entry.region :
+        i == 2 ? entry.row :
+        i == 3 ? entry.col :
+        throw(BoundsError(entry, i))
 end
 
 """
@@ -132,7 +188,7 @@ function GeoGrid(regions::Vector{String}, rows::Vector{Int}, cols::Vector{Int})
     if !(length(regions) == length(rows) == length(cols))
         throw(ArgumentError("All input vectors must have the same length"))
     end
-    
+
     # Validate region names
     for region_name in regions
         if isempty(strip(region_name))
