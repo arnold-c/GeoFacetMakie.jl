@@ -103,51 +103,79 @@ end
 """
     has_neighbor_below(grid::GeoGrid, region::String) -> Bool
 
-Check if a region has a neighboring region directly below it (row + 1, same column).
+Check if a region has any neighboring region below it in the same column.
 Returns `false` if the region doesn't exist in the grid.
 """
 function has_neighbor_below(grid::GeoGrid, region::String)
     pos = get_position(grid, region)
     isnothing(pos) && return false
     row, col = pos
-    return !isnothing(get_region_at(grid, row + 1, col))
+
+    # Check if any region exists in the same column with row > current_row
+    for (_, (r, c)) in grid.positions
+        if c == col && r > row
+            return true
+        end
+    end
+    return false
 end
 
 """
     has_neighbor_left(grid::GeoGrid, region::String) -> Bool
 
-Check if a region has a neighboring region directly to its left (same row, col - 1).
+Check if a region has any neighboring region to its left in the same row.
 Returns `false` if the region doesn't exist in the grid.
 """
 function has_neighbor_left(grid::GeoGrid, region::String)
     pos = get_position(grid, region)
     isnothing(pos) && return false
     row, col = pos
-    return !isnothing(get_region_at(grid, row, col - 1))
+
+    # Check if any region exists in the same row with col < current_col
+    for (_, (r, c)) in grid.positions
+        if r == row && c < col
+            return true
+        end
+    end
+    return false
 end
 
 """
     has_neighbor_right(grid::GeoGrid, region::String) -> Bool
 
-Check if a region has a neighboring region directly to its right (same row, col + 1).
+Check if a region has any neighboring region to its right in the same row.
 Returns `false` if the region doesn't exist in the grid.
 """
 function has_neighbor_right(grid::GeoGrid, region::String)
     pos = get_position(grid, region)
     isnothing(pos) && return false
     row, col = pos
-    return !isnothing(get_region_at(grid, row, col + 1))
+
+    # Check if any region exists in the same row with col > current_col
+    for (_, (r, c)) in grid.positions
+        if r == row && c > col
+            return true
+        end
+    end
+    return false
 end
 
 """
     has_neighbor_above(grid::GeoGrid, region::String) -> Bool
 
-Check if a region has a neighboring region directly above it (row - 1, same column).
+Check if a region has any neighboring region above it in the same column.
 Returns `false` if the region doesn't exist in the grid.
 """
 function has_neighbor_above(grid::GeoGrid, region::String)
     pos = get_position(grid, region)
     isnothing(pos) && return false
     row, col = pos
-    return !isnothing(get_region_at(grid, row - 1, col))
+
+    # Check if any region exists in the same column with row < current_row
+    for (_, (r, c)) in grid.positions
+        if c == col && r < row
+            return true
+        end
+    end
+    return false
 end

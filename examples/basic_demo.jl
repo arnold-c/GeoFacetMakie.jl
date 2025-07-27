@@ -13,7 +13,7 @@ Run this script from the package root directory:
 #%%
 using GeoFacetMakie
 using DataFrames
-using CairoMakie  # Use CairoMakie for static plots
+using GLMakie  # Use CairoMakie for static plots
 using Random
 
 #%%
@@ -84,7 +84,7 @@ try
         sample_data,
         :state,
         barplot_fn!;
-        link_axes = :both,
+        link_axes = :none,
         figure_kwargs = (size = (1200, 800),),
         axis_kwargs = (titlesize = 14,)
     )
@@ -101,6 +101,30 @@ try
 catch e
     println("❌ Error in Example 1: $e")
 end
+
+#%%
+geofacet(
+    sample_data, :state,
+    (gl, data; axis_kwargs...) -> begin
+        ax = Axis(gl[1, 1]; axis_kwargs...)
+        scatter!(
+            ax, data.gdp_per_capita, data.unemployment_rate,
+            color = :coral, markersize = 12
+        )
+        ax.title = data.state[1]
+        ax.xlabel = "GDP per capita (\$)"
+        ax.ylabel = "Unemployment (%)"
+    end,
+    link_axes = :both,  # Link both x and y axes
+    figure_kwargs = (size = (1800, 1200),),
+    axis_kwargs = (
+        titlesize = 12,
+        xlabelsize = 8,
+        ylabelsize = 8,
+        xticklabelsize = 6,
+        yticklabelsize = 6,
+    )
+).figure
 
 #%%
 # Example 2: Scatter plot with linked axes

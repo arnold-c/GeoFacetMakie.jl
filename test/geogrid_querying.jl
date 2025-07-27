@@ -40,7 +40,7 @@ end
 
     # Test has_neighbor_below
     @test has_neighbor_below(grid, "A") == true   # A has D below
-    @test has_neighbor_below(grid, "B") == false  # B has empty cell below
+    @test has_neighbor_below(grid, "B") == true   # B has H below in same column
     @test has_neighbor_below(grid, "C") == true   # C has F below
     @test has_neighbor_below(grid, "D") == true   # D has G below
     @test has_neighbor_below(grid, "G") == false  # G is at bottom
@@ -50,7 +50,7 @@ end
     @test has_neighbor_left(grid, "A") == false  # A is at left edge
     @test has_neighbor_left(grid, "B") == true   # B has A to left
     @test has_neighbor_left(grid, "C") == true   # C has B to left
-    @test has_neighbor_left(grid, "F") == false  # F has empty cell to left
+    @test has_neighbor_left(grid, "F") == true   # F has D to left in same row
     @test has_neighbor_left(grid, "H") == true   # H has G to left
     @test has_neighbor_left(grid, "nonexistent") == false
 
@@ -58,7 +58,7 @@ end
     @test has_neighbor_right(grid, "A") == true   # A has B to right
     @test has_neighbor_right(grid, "B") == true   # B has C to right
     @test has_neighbor_right(grid, "C") == false  # C is at right edge
-    @test has_neighbor_right(grid, "D") == false  # D has empty cell to right
+    @test has_neighbor_right(grid, "D") == true   # D has F to right in same row
     @test has_neighbor_right(grid, "G") == true   # G has H to right
     @test has_neighbor_right(grid, "nonexistent") == false
 
@@ -67,7 +67,7 @@ end
     @test has_neighbor_above(grid, "D") == true   # D has A above
     @test has_neighbor_above(grid, "F") == true   # F has C above
     @test has_neighbor_above(grid, "G") == true   # G has D above
-    @test has_neighbor_above(grid, "H") == false  # H has empty cell above
+    @test has_neighbor_above(grid, "H") == true   # H has B above in same column
     @test has_neighbor_above(grid, "nonexistent") == false
 end
 
