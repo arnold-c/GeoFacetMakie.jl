@@ -203,9 +203,9 @@ function geofacet(
         throw(ArgumentError("axis_kwargs_list must be a Vector of NamedTuples"))
     end
 
-    # Group data by region column
-    # TODO: update when change function to return gdf
-    grouped_data = _group_data_by_region(data, region_col_sym)
+    # Group data by region column using GroupedDataFrame directly
+    grouped_data = _prepare_grouped_data(data, region_col_sym)
+    available_regions = _get_available_regions(grouped_data, region_col_sym)
 
     # Get grid dimensions
     max_row, max_col = grid_dimensions(grid)
@@ -245,8 +245,7 @@ function geofacet(
         # when there are actual neighboring plots with data
         data_entries = GridEntry[]
         for entry in grid
-            region_data = _find_region_data(grouped_data, entry.region)
-            if !isnothing(region_data)
+            if _has_region_data(available_regions, entry.region)
                 push!(data_entries, entry)
             end
         end
@@ -322,11 +321,9 @@ function geofacet(
         )
 
         # Check if we have data for this region
-        # TODO: update when change grouped_data to a gdf.
-        # Instead of returning data, just return bool
-        region_data = _find_region_data(grouped_data, region_code)
-
-        if !isnothing(region_data)
+        if _has_region_data(available_regions, region_code)
+            # Get the actual data for this region
+            region_data = _get_region_data(grouped_data, region_col_sym, region_code)
             # We have data for this region
             data_mapping[region_code] = region_data
 
@@ -383,57 +380,52 @@ function geofacet(
     )
 end
 
-# TODO: Implement just as grouped df. No need to save region codes.
 """
-    _group_data_by_region(data, region_col)
+    _prepare_grouped_data(data, region_col)
 
-Group data by region column, handling case-insensitive matching.
+Group data by region column using DataFrames GroupedDataFrame directly.
+No data copying - preserves original data structure.
 """
-function _group_data_by_region(data, region_col)
-    # Use DataFrames groupby for efficient grouping
-    grouped = groupby(data, region_col)
-
-    # Convert to dictionary with string keys (uppercase for consistency)
-    result = Dict{String, Any}()
-    for group in grouped
-        region_code = string(group[1, region_col])
-        # Store with original case but also create uppercase lookup
-        result[uppercase(region_code)] = group
-        result[region_code] = group  # Also store original case
-    end
-
-    return result
+function _prepare_grouped_data(data, region_col)
+    return groupby(data, region_col)
 end
 
-# TODO: Update to work with gdf. Should just pass a Set of the unique region codes in the gdf.
-# Retain checking for spelling/case.
-# Return a bool instead of data
 """
-    _find_region_data(grouped_data, region_code)
+    _get_available_regions(grouped_data, region_col)
 
-Find data for a region, handling case-insensitive matching.
+Extract available region codes from GroupedDataFrame for case-insensitive lookup.
+Returns a Set of uppercase region codes for efficient membership testing.
 """
-function _find_region_data(grouped_data, region_code)
-    # Try exact match first
-    if haskey(grouped_data, region_code)
-        return grouped_data[region_code]
-    end
+function _get_available_regions(grouped_data, region_col)
+    # Get unique region codes and convert to uppercase for case-insensitive matching
+    return Set(uppercase(key[region_col]) for key in keys(grouped_data))
+end
 
-    # Try uppercase match
-    upper_code = uppercase(region_code)
-    if haskey(grouped_data, upper_code)
-        return grouped_data[upper_code]
-    end
+"""
+    _has_region_data(available_regions, region_code)
 
-    # Try lowercase match
-    lower_code = lowercase(region_code)
-    if haskey(grouped_data, lower_code)
-        return grouped_data[lower_code]
-    end
+Check if region data exists, handling case-insensitive matching.
+Returns boolean instead of data for efficiency.
+"""
+function _has_region_data(available_regions::Set{String}, region_code::String)
+    return uppercase(region_code) in available_regions
+end
 
-    # No match found
+"""
+    _get_region_data(grouped_data, region_col, region_code)
+
+Get data for a specific region from GroupedDataFrame, handling case-insensitive matching.
+"""
+function _get_region_data(grouped_data, region_col, region_code)
+    # Try to find the group with case-insensitive matching
+    for (key, group) in pairs(grouped_data)
+        if uppercase(string(key[region_col])) == uppercase(region_code)
+            return group
+        end
+    end
     return nothing
 end
+
 
 function hide_all_decorations!(layout::GridLayout)
     # Find all Axis objects in the GridLayout
