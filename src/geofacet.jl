@@ -232,6 +232,25 @@ function geofacet(
         end
     end
 
+    # Choose which grid to use for neighbor detection based on missing_regions setting
+    # When missing_regions = :empty, empty axes are created so use full grid
+    # When missing_regions = :skip, only data positions have axes so use data-only grid
+    neighbor_detection_grid = if missing_regions == :empty
+        grid  # Use full grid since empty axes will be created
+    else
+        # Create a filtered grid containing only positions that have data
+        # This is used for neighbor detection to ensure axis decorations are only hidden
+        # when there are actual neighboring plots with data
+        data_only_positions = Dict{String, Tuple{Int, Int}}()
+        for (region_code, position) in grid.positions
+            region_data = _find_region_data(grouped_data, region_code)
+            if !isnothing(region_data)
+                data_only_positions[region_code] = position
+            end
+        end
+        GeoGrid(grid.name * "_data_only", data_only_positions)
+    end
+
     # Create axes for all grid positions
     for (region_code, (row, col)) in grid.positions
         # Create axis at grid position
@@ -249,7 +268,7 @@ function geofacet(
 
             if hide_inner_decorations
                 # Only hide x-axis decorations if x-axes are linked AND there's a neighbor below
-                if (link_axes == :x || link_axes == :both) && has_neighbor_below(grid, region_code)
+                if (link_axes == :x || link_axes == :both) && has_neighbor_below(neighbor_detection_grid, region_code)
                     axis_decoration_kwargs = merge(
                         axis_decoration_kwargs, (
                             xticksvisible = false,
@@ -271,9 +290,9 @@ function geofacet(
 
                     # Check appropriate neighbor based on ylabel position
                     should_hide_y = if ylabel_pos == :right
-                        has_neighbor_right(grid, region_code)
+                        has_neighbor_right(neighbor_detection_grid, region_code)
                     else  # :left (default)
-                        has_neighbor_left(grid, region_code)
+                        has_neighbor_left(neighbor_detection_grid, region_code)
                     end
 
                     if should_hide_y
