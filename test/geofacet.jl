@@ -38,37 +38,28 @@ using GeoFacetMakie
         @test_nowarn geofacet(sample_data, :state, simple_plot_func!)
         @test_nowarn geofacet(sample_data, "state", simple_plot_func!)
 
-        # Test return type structure
+        # Test return type structure - now returns Figure directly
         result = geofacet(sample_data, :state, simple_plot_func!)
-        @test haskey(result, :figure)
-        @test haskey(result, :gls)
-        @test haskey(result, :grid_layout)
-        @test haskey(result, :data_mapping)
-        @test isa(result.figure, Figure)
-        @test isa(result.gls, Dict)
-        @test isa(result.grid_layout, GridLayout)
-        @test isa(result.data_mapping, Dict)
+        @test isa(result, Figure)
 
-        # Test that gls contains GridLayout objects for each region
-        @test length(result.gls) >= 5
-        @test all(gl isa GridLayout for gl in values(result.gls))
-
-        # Test that GridLayouts exist for states with data
-        for state in ["CA", "TX", "NY", "FL", "WA"]
-            @test haskey(result.gls, state)
-            @test isa(result.gls[state], GridLayout)
-        end
+        # Test that the figure contains the expected grid layout structure
+        @test !isnothing(result.layout)
+        @test isa(result.layout, GridLayout)
     end
 
     @testset "Data Processing and Grouping" begin
         result = geofacet(sample_data, :state, simple_plot_func!)
 
-        # Check that data was properly grouped and mapped
-        @test length(result.data_mapping) == 5  # 5 states in sample data
-        @test all(state in keys(result.data_mapping) for state in ["CA", "TX", "NY", "FL", "WA"])
+        # Check that the figure was created successfully
+        @test isa(result, Figure)
+        @test !isnothing(result.layout)
 
-        # Check that GridLayouts were created for data regions
-        @test all(state in keys(result.gls) for state in ["CA", "TX", "NY", "FL", "WA"])
+        # Verify that the figure contains content (plots were created)
+        @test !isempty(result.layout.content)
+
+        # Verify 5 separate facets are created and each contains an Axis
+        @test length(result.content) == 5
+        @test result.content[1] isa Axis
     end
 
     @testset "GridLayout Object Passing" begin
@@ -88,11 +79,9 @@ using GeoFacetMakie
         @test length(received_objects) == 5  # One for each state
         @test all(obj isa GridLayout for obj in received_objects)
 
-        # Verify the result structure includes GridLayout references
-        @test haskey(result, :gls)
-        @test isa(result.gls, Dict)
-        @test length(result.gls) >= 5  # At least one for each state with data
-        @test all(gl isa GridLayout for gl in values(result.gls))
+        # Verify the result is a Figure
+        @test isa(result, Figure)
+        @test !isnothing(result.layout)
     end
 
     @testset "Single Axis Creation in GridLayout" begin
@@ -107,10 +96,8 @@ using GeoFacetMakie
 
         result = geofacet(sample_data, :state, single_axis_func!)
 
-        @test !isnothing(result.figure)
-        @test isa(result.grid_layout, GridLayout)
-        @test length(result.data_mapping) == 5
-        @test length(result.gls) >= 5
+        @test isa(result, Figure)
+        @test !isnothing(result.layout)
     end
 
     @testset "Multi-Axis Creation in GridLayout" begin
@@ -133,10 +120,24 @@ using GeoFacetMakie
         end
 
         result = geofacet(sample_data, :state, multi_axis_func!)
-        @test !isnothing(result.figure)
-        @test isa(result.grid_layout, GridLayout)
-        @test length(result.data_mapping) == 5
-        @test length(result.gls) >= 5
+        @test isa(result, Figure)
+        @test !isnothing(result.layout)
+
+        # Verify 5 separate facets are created and each contains 2 Axes
+        @test length(result.content) == 5 * 2
+        @test result.content[1] isa Axis
+
+
+        facet_gls = filter(
+            c -> !isempty(c.content.content),
+            result.layout.content[1].content.content
+        )
+        @test length(facet_gls) == 5
+
+        for facet in facet_gls
+            @test length(facet.content.content) == 2
+        end
+
     end
 
     @testset "Dual Y-Axis Implementation" begin
@@ -179,25 +180,24 @@ using GeoFacetMakie
         end
 
         result = geofacet(sample_data, :state, dual_axis_func!)
-        @test !isnothing(result.figure)
-        @test length(result.data_mapping) == 5
-        @test length(result.gls) >= 5
+        @test isa(result, Figure)
+        @test !isnothing(result.layout)
     end
 
     @testset "Grid Integration" begin
         # Test with default grid
         result1 = geofacet(sample_data, :state, simple_plot_func!)
-        @test !isnothing(result1.figure)
+        @test isa(result1, Figure)
 
         # Test with custom grid
         custom_grid = load_us_state_grid(2)
         result2 = geofacet(sample_data, :state, simple_plot_func!; grid = custom_grid)
-        @test !isnothing(result2.figure)
+        @test isa(result2, Figure)
 
         # Test with contiguous grid
         contiguous_grid = load_us_contiguous_grid()
         result3 = geofacet(sample_data, :state, simple_plot_func!; grid = contiguous_grid)
-        @test !isnothing(result3.figure)
+        @test isa(result3, Figure)
     end
 
     @testset "Plot Function Execution" begin
@@ -221,15 +221,15 @@ using GeoFacetMakie
             sample_data, :state, simple_plot_func!;
             figure_kwargs = (size = (800, 600),)
         )
-        @test Tuple(result1.figure.scene.viewport[].widths) == (800, 600)
+        @test Tuple(result1.scene.viewport[].widths) == (800, 600)
 
         # Test axis_kwargs
         result2 = geofacet(
             sample_data, :state, simple_plot_func!;
             axis_kwargs = (ylabel = "Test Label",)
         )
-        # Check that GridLayouts were created with the specified kwargs
-        @test length(result2.gls) > 0
+        # Check that the figure was created successfully
+        @test isa(result2, Figure)
         # Note: axis_kwargs are passed to the plot function, so we can't directly test them here
         # The plot function is responsible for using them when creating axes
     end
@@ -237,19 +237,19 @@ using GeoFacetMakie
     @testset "Axis Linking" begin
         # Test no linking (default)
         result1 = geofacet(time_series_data, :state, line_plot_func!; link_axes = :none)
-        @test !isnothing(result1.figure)
+        @test isa(result1, Figure)
 
         # Test x-axis linking
         result2 = geofacet(time_series_data, :state, line_plot_func!; link_axes = :x)
-        @test !isnothing(result2.figure)
+        @test isa(result2, Figure)
 
         # Test y-axis linking
         result3 = geofacet(time_series_data, :state, line_plot_func!; link_axes = :y)
-        @test !isnothing(result3.figure)
+        @test isa(result3, Figure)
 
         # Test both axes linking
         result4 = geofacet(time_series_data, :state, line_plot_func!; link_axes = :both)
-        @test !isnothing(result4.figure)
+        @test isa(result4, Figure)
 
         # Test axis linking with multi-axis plots
         function linked_multi_axis_func!(gl, data; axis_kwargs...)
@@ -263,8 +263,8 @@ using GeoFacetMakie
         end
 
         result_linked = geofacet(sample_data, :state, linked_multi_axis_func!; link_axes = :both)
-        @test !isnothing(result_linked.figure)
-        @test length(result_linked.gls) >= 5
+        @test isa(result_linked, Figure)
+        @test !isnothing(result_linked.layout)
     end
 
     @testset "Missing Regions Handling" begin
@@ -277,13 +277,13 @@ using GeoFacetMakie
 
         # Test skip missing regions (default)
         result1 = geofacet(limited_data, :state, simple_plot_func!; missing_regions = :skip)
-        @test length(result1.data_mapping) == 2
-        @test haskey(result1.data_mapping, "CA")
-        @test haskey(result1.data_mapping, "TX")
+        @test isa(result1, Figure)
+        @test !isnothing(result1.layout)
 
         # Test empty GridLayouts for missing regions
         result2 = geofacet(limited_data, :state, simple_plot_func!; missing_regions = :empty)
-        @test length(result2.gls) >= 2  # Should have GridLayouts for grid positions
+        @test isa(result2, Figure)
+        @test !isnothing(result2.layout)
 
         # Test error on missing regions
         @test_throws Exception geofacet(limited_data, :state, simple_plot_func!; missing_regions = :error)
@@ -313,10 +313,8 @@ using GeoFacetMakie
 
         # Should handle errors gracefully and continue with other facets
         result = geofacet(sample_data, :state, error_plot_func!)
-        @test !isnothing(result)
-        @test haskey(result, :figure)
-        @test haskey(result, :gls)
-        @test length(result.data_mapping) == 5  # Data mapping should still be complete
+        @test isa(result, Figure)
+        @test !isnothing(result.layout)
     end
 
     @testset "Region Code Matching" begin
@@ -328,7 +326,7 @@ using GeoFacetMakie
         )
 
         result = geofacet(mixed_case_data, :state, simple_plot_func!)
-        @test length(result.data_mapping) == 3
+        @test isa(result, Figure)
 
         # Test regions not in grid
         invalid_data = DataFrame(
@@ -339,9 +337,8 @@ using GeoFacetMakie
 
         # Should handle gracefully and only plot valid regions
         result = geofacet(invalid_data, :state, simple_plot_func!)
-        @test haskey(result.data_mapping, "CA")
-        @test !haskey(result.data_mapping, "XX")
-        @test !haskey(result.data_mapping, "YY")
+        @test isa(result, Figure)
+        @test !isnothing(result.layout)
     end
 
     @testset "Different Plot Types" begin
@@ -352,11 +349,11 @@ using GeoFacetMakie
             return nothing
         end
         result1 = geofacet(sample_data, :state, bar_plot_func!)
-        @test !isnothing(result1.figure)
+        @test isa(result1, Figure)
 
         # Test with time series
         result2 = geofacet(time_series_data, :state, line_plot_func!)
-        @test !isnothing(result2.figure)
+        @test isa(result2, Figure)
 
         # Test with multiple series
         function multi_plot_func!(gl, data; axis_kwargs...)
@@ -366,7 +363,7 @@ using GeoFacetMakie
             return nothing
         end
         result3 = geofacet(time_series_data, :state, multi_plot_func!)
-        @test !isnothing(result3.figure)
+        @test isa(result3, Figure)
 
         # Test complex multi-panel layouts (2x2 grid within facets)
         function complex_layout_func!(gl, data; axis_kwargs...)
@@ -398,7 +395,7 @@ using GeoFacetMakie
             return nothing
         end
         result4 = geofacet(sample_data, :state, complex_layout_func!)
-        @test !isnothing(result4.figure)
+        @test isa(result4, Figure)
     end
 
     @testset "GridLayout Axis Collection and Linking" begin
@@ -415,16 +412,24 @@ using GeoFacetMakie
 
         result = geofacet(sample_data, :state, multi_axis_func!; link_axes = :x)
 
-        @test !isnothing(result.figure)
-        @test length(result.gls) >= 5
+        @test isa(result, Figure)
+        @test !isnothing(result.layout)
 
-        # Test that the collect_gl_axes function can find axes in GridLayouts
-        gl_list = collect(values(result.gls))
-        axes_found = GeoFacetMakie.collect_gl_axes(gl_list)
+        facet_gls = filter(
+            c -> !isempty(c.content.content),
+            result.layout.content[1].content.content
+        )
+        @test length(facet_gls) == 5
 
-        # Should find multiple axes (2 per GridLayout * number of GridLayouts)
-        @test length(axes_found) >= 10  # At least 2 axes per state
-        @test all(ax isa Axis for ax in axes_found)
+        for facet in facet_gls
+            @test length(facet.content.content) == 2
+        end
+
+
+        # Test that the figure contains the expected structure
+        # Note: Since we no longer return gls directly, we test that the figure was created successfully
+        # and contains the expected layout structure
+        @test !isempty(result.layout.content)
     end
 
     @testset "Performance and Memory" begin
@@ -444,7 +449,8 @@ using GeoFacetMakie
         end
 
         # Should handle larger datasets without issues
-        @test_nowarn geofacet(large_data, :state, performance_func!)
+        result = geofacet(large_data, :state, performance_func!)
+        @test isa(result, Figure)
     end
 
     @testset "Integration with Existing Grid System" begin
@@ -459,8 +465,8 @@ using GeoFacetMakie
 
         for grid in grids_to_test
             result = geofacet(sample_data, :state, simple_plot_func!; grid = grid)
-            @test !isnothing(result.figure)
-            @test !isnothing(result.grid_layout)
+            @test isa(result, Figure)
+            @test !isnothing(result.layout)
         end
     end
 
@@ -610,7 +616,7 @@ using GeoFacetMakie
             test_data, :state, single_axis_new_api!;
             common_axis_kwargs = (xlabel = "Common X", ylabel = "Common Y")
         )
-        @test !isnothing(result1.figure)
+        @test isa(result1, Figure)
 
         # Test with axis_kwargs_list for multi-axis plots
         function multi_axis_new_api!(gl, data; processed_axis_kwargs_list)
@@ -630,7 +636,7 @@ using GeoFacetMakie
                 (xlabel = "Value 2", ylabel = "Count 2", yscale = log10),
             ]
         )
-        @test !isnothing(result2.figure)
+        @test isa(result2, Figure)
 
         # Test that decoration hiding works with multi-axis
         simple_entries = [GridEntry("A", 1, 1), GridEntry("B", 1, 2)]
@@ -647,6 +653,6 @@ using GeoFacetMakie
             link_axes = :y,
             hide_inner_decorations = true
         )
-        @test !isnothing(result3.figure)
+        @test isa(result3, Figure)
     end
 end

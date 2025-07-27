@@ -171,7 +171,7 @@ function geofacet(
         missing_regions = :skip,
         hide_inner_decorations = true,
         # Backward compatibility
-        axis_kwargs = nothing,
+        axis_kwargs = NamedTuple[],
         kwargs...
     )
 
@@ -219,7 +219,6 @@ function geofacet(
     grid_layout = fig[1, 1] = GridLayout()
 
     # Track regions with data for return structure (backward compatibility)
-    regions_with_data = Set{String}()
     created_gridlayouts = Dict{String, GridLayout}()
 
     # Handle missing regions check
@@ -287,10 +286,10 @@ function geofacet(
                         temp_kwargs = merge(temp_kwargs, axis_kwargs_list[i])
                     end
 
-                    ylabel_pos = _get_yaxis_position(temp_kwargs)
+                    yaxis_position = _get_yaxis_position(temp_kwargs)
 
                     # Check appropriate neighbor based on ylabel position
-                    should_hide_y = if ylabel_pos == :right
+                    should_hide_y = if yaxis_position == :right
                         has_neighbor_right(neighbor_detection_grid, region_code)
                     else  # :left (default)
                         has_neighbor_left(neighbor_detection_grid, region_code)
@@ -323,8 +322,6 @@ function geofacet(
         if _has_region_data(available_regions, region_code)
             # Get the actual data for this region
             region_data = _get_region_data(grouped_data, region_col_sym, region_code)
-            # Track that we have data for this region
-            push!(regions_with_data, region_code)
 
             # Execute plot function with error handling
             try
@@ -368,20 +365,7 @@ function geofacet(
         end
     end
 
-    # Create backward-compatible data_mapping for return structure
-    data_mapping = Dict{String, Any}()
-    for region_code in regions_with_data
-        # Get the data for this region for backward compatibility
-        region_data = _get_region_data(grouped_data, region_col_sym, region_code)
-        data_mapping[region_code] = region_data
-    end
-
-    return (
-        figure = fig,
-        gls = created_gridlayouts,
-        grid_layout = grid_layout,
-        data_mapping = data_mapping,
-    )
+    return fig
 end
 
 """

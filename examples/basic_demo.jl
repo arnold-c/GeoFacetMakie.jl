@@ -88,7 +88,7 @@ geofacet(
     figure_kwargs = (size = (1200, 800),),
     axis_kwargs = (titlesize = 14, ylabel = "Population (M)"),
     # hide_inner_decorations = false
-).figure
+)
 
 #%%
 try
