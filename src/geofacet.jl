@@ -218,10 +218,9 @@ function geofacet(
     # Create main grid layout
     grid_layout = fig[1, 1] = GridLayout()
 
-    # Create axes dictionary and data mapping
-    # TODO: delete these
-    gl_dict = Dict{String, GridLayout}()
-    data_mapping = Dict{String, Any}()
+    # Track regions with data for return structure (backward compatibility)
+    regions_with_data = Set{String}()
+    created_gridlayouts = Dict{String, GridLayout}()
 
     # Handle missing regions check
     if missing_regions == :error
@@ -254,10 +253,10 @@ function geofacet(
 
     # Create axes for all grid positions
     for entry in grid
-        region_code, row, col = entry.region, entry.row, entry.col
+        region_code, row, col = entry
         # Create axis at grid position
         gl = GridLayout(grid_layout[row, col])
-        gl_dict[region_code] = gl
+        created_gridlayouts[region_code] = gl
 
         # For backward compatibility, if axis_kwargs_list is empty, use a single axis
         num_axes = isempty(axis_kwargs_list) ? 1 : length(axis_kwargs_list)
@@ -324,8 +323,8 @@ function geofacet(
         if _has_region_data(available_regions, region_code)
             # Get the actual data for this region
             region_data = _get_region_data(grouped_data, region_col_sym, region_code)
-            # We have data for this region
-            data_mapping[region_code] = region_data
+            # Track that we have data for this region
+            push!(regions_with_data, region_code)
 
             # Execute plot function with error handling
             try
@@ -350,10 +349,8 @@ function geofacet(
     end
 
     # Apply axis linking
-    # TODO: update axis linking when delete gl_dict to access directly from figure
-    # Just need to ensure only accessing GLs that exist and weren't skipped
-    if link_axes != :none && !isempty(gl_dict)
-        gl_list = collect(values(gl_dict))
+    if link_axes != :none && !isempty(created_gridlayouts)
+        gl_list = collect(values(created_gridlayouts))
         axes_by_position = collect_gl_axes_by_position(gl_list)
 
         # Link each position's axes separately
@@ -371,10 +368,17 @@ function geofacet(
         end
     end
 
-    # TODO: Just return the figure
+    # Create backward-compatible data_mapping for return structure
+    data_mapping = Dict{String, Any}()
+    for region_code in regions_with_data
+        # Get the data for this region for backward compatibility
+        region_data = _get_region_data(grouped_data, region_col_sym, region_code)
+        data_mapping[region_code] = region_data
+    end
+
     return (
         figure = fig,
-        gls = gl_dict,
+        gls = created_gridlayouts,
         grid_layout = grid_layout,
         data_mapping = data_mapping,
     )

@@ -56,10 +56,10 @@ println("Columns: $(names(sample_data))")
 println("\n📈 Example 1: Population by State (Bar Plot)")
 println("-"^40)
 
-function barplot_fn(data)
+function barplot_fn(data; axis_kwargs...)
     fig = Figure()
     gl = fig[1, 1] = GridLayout()
-    barplot_fn!(gl, data)
+    barplot_fn!(gl, data; axis_kwargs...)
     return fig
 end
 
@@ -74,7 +74,8 @@ end
 
 
 barplot_fn(
-    subset(sample_data, :state => s -> s .== "CA")
+    subset(sample_data, :state => s -> s .== "CA");
+    ylabel = "Population (M)"
 )
 
 #%%
@@ -86,7 +87,7 @@ geofacet(
     link_axes = :both,
     figure_kwargs = (size = (1200, 800),),
     axis_kwargs = (titlesize = 14, ylabel = "Population (M)"),
-    hide_inner_decorations = false
+    # hide_inner_decorations = false
 ).figure
 
 #%%
