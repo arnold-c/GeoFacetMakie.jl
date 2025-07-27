@@ -31,10 +31,56 @@ const us_state_grid = let
 end
 
 """
+    _merge_axis_kwargs(common_kwargs, per_axis_kwargs_list, decoration_kwargs, num_axes)
+
+Merge common axis kwargs, per-axis kwargs, and decoration hiding kwargs.
+Returns a vector of merged NamedTuples for each axis.
+
+# Arguments
+- `common_kwargs`: NamedTuple applied to all axes
+- `per_axis_kwargs_list`: Vector of NamedTuples for per-axis kwargs
+- `decoration_kwargs`: NamedTuple with decoration hiding settings
+- `num_axes`: Number of axes (used when per_axis_kwargs_list is shorter)
+
+# Merging Priority (highest to lowest)
+1. Decoration hiding kwargs
+2. Per-axis kwargs from axis_kwargs_list[i]
+3. Common kwargs from common_axis_kwargs
+"""
+function _merge_axis_kwargs(common_kwargs, per_axis_kwargs_list, decoration_kwargs, num_axes)
+    # If no specific number of axes requested and no per-axis kwargs, default to 1
+    if num_axes == 0 && isempty(per_axis_kwargs_list)
+        num_axes = 1
+    elseif num_axes == 0
+        num_axes = length(per_axis_kwargs_list)
+    end
+
+    processed_kwargs = NamedTuple[]
+
+    for i in 1:num_axes
+        # Start with common kwargs
+        merged = common_kwargs
+
+        # Add per-axis kwargs if available
+        if i <= length(per_axis_kwargs_list)
+            merged = merge(merged, per_axis_kwargs_list[i])
+        end
+
+        # Add decoration kwargs (highest priority)
+        merged = merge(merged, decoration_kwargs)
+
+        push!(processed_kwargs, merged)
+    end
+
+    return processed_kwargs
+end
+
+"""
     geofacet(data, region_col, plot_func;
              grid = us_state_grid,
              figure_kwargs = NamedTuple(),
-             axis_kwargs = NamedTuple(),
+             common_axis_kwargs = NamedTuple(),
+             axis_kwargs_list = NamedTuple[],
              link_axes = :none,
              missing_regions = :skip,
              hide_inner_decorations = true,
@@ -45,14 +91,17 @@ Create a geographically faceted plot using the specified grid layout.
 # Arguments
 - `data`: DataFrame or similar tabular data structure
 - `region_col`: Symbol or string specifying the column containing region identifiers
-- `plot_func`: Function that takes `(gridlayout, data_subset)` and creates plots
+- `plot_func`: Function that takes `(gridlayout, data_subset; processed_axis_kwargs_list)` and creates plots
 
 # Keyword Arguments
 - `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid`)
 - `figure_kwargs`: NamedTuple passed to `Figure()` constructor
-- `axis_kwargs`: NamedTuple passed to each `Axis()` constructor. **Important**: To ensure proper
+- `common_axis_kwargs`: NamedTuple applied to all axes in each facet. **Important**: To ensure proper
   hiding of axis decorations when `hide_inner_decorations = true`, axis labels (`xlabel`, `ylabel`)
   should be specified here rather than within the plot function.
+- `axis_kwargs_list`: Vector of NamedTuples for per-axis specific kwargs. Each element corresponds
+  to an axis in the order they are created in the plot function. These are merged with
+  `common_axis_kwargs` (per-axis takes precedence).
 - `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
 - `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
 - `hide_inner_decorations`: Bool controlling whether to hide axis decorations on inner facets
@@ -73,25 +122,29 @@ using DataFrames, GeoFacetMakie
 # Sample data
 data = DataFrame(
     state = ["CA", "TX", "NY"],
-    population = [39_500_000, 29_000_000, 19_500_000]
+    population = [39_500_000, 29_000_000, 19_500_000],
+    gdp = [3_200_000, 2_400_000, 1_900_000]
 )
 
-# Create bar plots for each state (simple single-axis plot)
-result = geofacet(data, :state, (layout, data) -> begin
-    ax = Axis(layout[1, 1])
+# Single-axis plot (backward compatible)
+result = geofacet(data, :state, (layout, data; processed_axis_kwargs_list) -> begin
+    ax = Axis(layout[1, 1]; processed_axis_kwargs_list[1]...)
     barplot!(ax, [1], data.population)
-end)
+end; common_axis_kwargs = (xlabel = "Index", ylabel = "Population"))
 
-# Display the figure
-result.figure
-
-# For complex multi-axis plots:
-result = geofacet(data, :state, (layout, data) -> begin
-    ax1 = Axis(layout[1, 1])
-    ax2 = Axis(layout[2, 1])
+# Multi-axis plot with common and per-axis kwargs
+result = geofacet(data, :state, (layout, data; processed_axis_kwargs_list) -> begin
+    ax1 = Axis(layout[1, 1]; processed_axis_kwargs_list[1]...)
+    ax2 = Axis(layout[2, 1]; processed_axis_kwargs_list[2]...)
     barplot!(ax1, [1], data.population)
     barplot!(ax2, [1], data.gdp)
-end)
+end;
+    common_axis_kwargs = (titlesize = 12),
+    axis_kwargs_list = [
+        (xlabel = "Index", ylabel = "Population"),
+        (xlabel = "Index", ylabel = "GDP", yscale = log10)
+    ]
+)
 ```
 """
 function geofacet(
@@ -100,10 +153,13 @@ function geofacet(
         plot_func;
         grid = us_state_grid,
         figure_kwargs = NamedTuple(),
-        axis_kwargs = NamedTuple(),
+        common_axis_kwargs = NamedTuple(),
+        axis_kwargs_list = NamedTuple[],
         link_axes = :none,
         missing_regions = :skip,
         hide_inner_decorations = true,
+        # Backward compatibility
+        axis_kwargs = nothing,
         kwargs...
     )
 
@@ -127,6 +183,12 @@ function geofacet(
     # Validate missing_regions parameter
     if !(missing_regions in [:skip, :empty, :error])
         throw(ArgumentError("missing_regions must be one of :skip, :empty, :error"))
+    end
+
+
+    # Validate axis_kwargs_list parameter
+    if !isa(axis_kwargs_list, Vector{<:NamedTuple})
+        throw(ArgumentError("axis_kwargs_list must be a Vector of NamedTuples"))
     end
 
     # Group data by region column
@@ -164,11 +226,9 @@ function geofacet(
         gl = GridLayout(grid_layout[row, col])
         gl_dict[region_code] = gl
 
-        # Modify axis_kwargs based on neighbor detection and axis linking
-        region_axis_kwargs = axis_kwargs
+        # Calculate decoration hiding kwargs based on neighbor detection and axis linking
+        decoration_kwargs = NamedTuple()
         if hide_inner_decorations
-            decoration_kwargs = NamedTuple()
-
             # Only hide x-axis decorations if x-axes are linked AND there's a neighbor below
             if (link_axes == :x || link_axes == :both) && has_neighbor_below(grid, region_code)
                 decoration_kwargs = merge(
@@ -190,10 +250,17 @@ function geofacet(
                     )
                 )
             end
-
-            # Merge with original axis_kwargs
-            region_axis_kwargs = merge(axis_kwargs, decoration_kwargs)
         end
+
+        # Merge all kwargs for this region's axes
+        # For backward compatibility, if axis_kwargs_list is empty, use a single axis
+        num_axes = isempty(axis_kwargs_list) ? 1 : length(axis_kwargs_list)
+        processed_axis_kwargs_list = _merge_axis_kwargs(
+            common_axis_kwargs,
+            axis_kwargs_list,
+            decoration_kwargs,
+            num_axes
+        )
 
         # Check if we have data for this region
         region_data = _find_region_data(grouped_data, region_code)
@@ -204,7 +271,12 @@ function geofacet(
 
             # Execute plot function with error handling
             try
-                plot_func(gl, region_data; region_axis_kwargs...)
+                # For backward compatibility, if axis_kwargs_list is empty, pass the first kwargs as axis_kwargs
+                if isempty(axis_kwargs_list)
+                    plot_func(gl, region_data; processed_axis_kwargs_list[1]...)
+                else
+                    plot_func(gl, region_data; processed_axis_kwargs_list = processed_axis_kwargs_list)
+                end
             catch e
                 @warn "Error plotting region $region_code: $e"
                 # Continue with other regions
@@ -212,7 +284,7 @@ function geofacet(
         elseif missing_regions == :empty
             # No data for this region
             # Create empty axis with region label
-            ax = Axis(gl[1, 1]; title = region_code, region_axis_kwargs...)
+            ax = Axis(gl[1, 1]; title = region_code, processed_axis_kwargs_list[1]...)
         elseif missing_regions == :skip
             continue
         end
@@ -222,13 +294,15 @@ function geofacet(
     if link_axes != :none && !isempty(gl_dict)
         gl_list = collect(values(gl_dict))
         gl_axes = collect_gl_axes(gl_list)
-        if link_axes == :x
-            linkxaxes!(gl_axes...)
-        elseif link_axes == :y
-            linkyaxes!(gl_axes...)
-        elseif link_axes == :both
-            linkxaxes!(gl_axes...)
-            linkyaxes!(gl_axes...)
+        if !isempty(gl_axes)
+            if link_axes == :x
+                linkxaxes!(gl_axes...)
+            elseif link_axes == :y
+                linkyaxes!(gl_axes...)
+            elseif link_axes == :both
+                linkxaxes!(gl_axes...)
+                linkyaxes!(gl_axes...)
+            end
         end
     end
 
@@ -302,11 +376,26 @@ end
 function collect_gl_axes(layouts::Vector{L}) where {L <: GridLayout}
     axes = Axis[]
 
-    for layout in layouts, content in layout.content
-        if content.content isa Axis
-            push!(axes, content.content)
-        end
+    for layout in layouts
+        _collect_axes_recursive!(axes, layout)
     end
 
     return axes
+end
+
+"""
+    _collect_axes_recursive!(axes, layout)
+
+Recursively collect all Axis objects from a GridLayout, including nested GridLayouts.
+"""
+function _collect_axes_recursive!(axes::Vector{Axis}, layout::GridLayout)
+    for content in layout.content
+        if content.content isa Axis
+            push!(axes, content.content)
+        elseif content.content isa GridLayout
+            # Recursively search nested GridLayouts
+            _collect_axes_recursive!(axes, content.content)
+        end
+    end
+    return nothing
 end

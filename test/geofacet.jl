@@ -591,4 +591,64 @@ using GeoFacetMakie
         @test received_kwargs["C"] == pairs(())
         @test received_kwargs["D"] == pairs(())
     end
+
+    @testset "Multi-Axis Kwargs API" begin
+        # Test new multi-axis kwargs functionality
+        test_data = DataFrame(
+            state = ["CA", "TX"],
+            value1 = [100, 200],
+            value2 = [50, 75]
+        )
+
+        # Test with common_axis_kwargs only (backward compatible)
+        function single_axis_new_api!(gl, data; processed_axis_kwargs_list)
+            ax = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
+            scatter!(ax, [1], data.value1)
+            return nothing
+        end
+
+        result1 = geofacet(
+            test_data, :state, single_axis_new_api!;
+            common_axis_kwargs = (xlabel = "Common X", ylabel = "Common Y")
+        )
+        @test !isnothing(result1.figure)
+
+        # Test with axis_kwargs_list for multi-axis plots
+        function multi_axis_new_api!(gl, data; processed_axis_kwargs_list)
+            ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
+            ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[2]...)
+
+            scatter!(ax1, [1], data.value1)
+            scatter!(ax2, [1], data.value2)
+            return nothing
+        end
+
+        result2 = geofacet(
+            test_data, :state, multi_axis_new_api!;
+            common_axis_kwargs = (titlesize = 12,),
+            axis_kwargs_list = [
+                (xlabel = "Value 1", ylabel = "Count 1"),
+                (xlabel = "Value 2", ylabel = "Count 2", yscale = log10),
+            ]
+        )
+        @test !isnothing(result2.figure)
+
+        # Test that decoration hiding works with multi-axis
+        simple_grid = GeoGrid(
+            "test", Dict("A" => (1, 1), "B" => (1, 2))
+        )
+
+        result3 = geofacet(
+            test_data, :state, multi_axis_new_api!;
+            grid = simple_grid,
+            common_axis_kwargs = (titlesize = 12,),
+            axis_kwargs_list = [
+                (xlabel = "Value 1", ylabel = "Count 1"),
+                (xlabel = "Value 2", ylabel = "Count 2"),
+            ],
+            link_axes = :y,
+            hide_inner_decorations = true
+        )
+        @test !isnothing(result3.figure)
+    end
 end

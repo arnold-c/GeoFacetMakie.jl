@@ -139,67 +139,38 @@ println("Data points: $(nrow(time_series_data))")
 #%%
 # Define named mutating plotting function for dual time series
 """
-    dual_timeseries_plot!(ax, data)
+    dual_timeseries_plot!(gl, data; processed_axis_kwargs_list)
 
-Mutating plotting function that creates dual time series plots:
+Mutating plotting function that creates dual time series plots using the new multi-axis API:
 - Population (left y-axis, blue line)
 - GDP per capita (right y-axis, red line)
 
-This function is designed to be passed to geofacet() for creating
-geographically arranged dual time series plots.
+This function demonstrates the new multi-axis kwargs API where each axis receives
+its own processed kwargs from the geofacet function.
 """
-function dual_timeseries_plot!(
-	gl,
-	data;
-	titlesize = 16,
-	xlabelsize = 16,
-	ylabelsize = 16,
-)
+function dual_timeseries_plot!(gl, data; processed_axis_kwargs_list)
     # Ensure data is sorted by year
     sorted_data = sort(data, :year)
 
-	pop_ax = Axis(
-		gl[1, 1]; xticks = sorted_data.year
-	)
+    # Create population axis with first set of processed kwargs
+    pop_ax = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
 
-	gdp_ax = Axis(gl[1, 1])
+    # Create GDP axis with second set of processed kwargs
+    gdp_ax = Axis(gl[1, 1]; processed_axis_kwargs_list[2]...)
 
     # Plot population on primary y-axis (left)
-    pop_line = lines!(pop_ax, sorted_data.year, sorted_data.population,
-                     color = :steelblue, linewidth = 2.5, label = "Population")
+    lines!(pop_ax, sorted_data.year, sorted_data.population,
+           color = :steelblue, linewidth = 2.5, label = "Population")
 
     # Configure primary axis (population)
     pop_ax.title = sorted_data.state[1]
-    pop_ax.xlabel = "Year"
-    pop_ax.ylabel = "Population (M)"
-    pop_ax.ylabelcolor = :steelblue
-    pop_ax.yticklabelcolor = :steelblue
-	pop_ax.ygridvisible = false
 
-
-    # Create secondary y-axis for GDP
-	gdp_ax.xticksvisible = false
-	gdp_ax.xticklabelsvisible = false
-	gdp_ax.xgridvisible = false
-	gdp_ax.ygridvisible = false
-    gdp_ax.yaxisposition = :right
-    gdp_ax.leftspinevisible = false
-    gdp_ax.bottomspinevisible = false
-    gdp_ax.topspinevisible = false
-	gdp_ax.ygridvisible = false
-    gdp_ax.ylabel = "GDP per capita (\$)"
-    gdp_ax.ylabelcolor = :firebrick
-    gdp_ax.yticklabelcolor = :firebrick
+    # Configure secondary axis (GDP) - styling applied via kwargs
+    # Additional styling not covered by kwargs
 
     # Plot GDP on secondary y-axis (right)
-    gdp_line = lines!(gdp_ax, sorted_data.year, sorted_data.gdp_per_capita,
-                     color = :firebrick, linewidth = 2.5, label = "GDP per capita")
-
-    # Improve readability
-    pop_ax.titlesize = titlesize
-    pop_ax.xlabelsize = xlabelsize
-    pop_ax.ylabelsize = ylabelsize
-    gdp_ax.ylabelsize = ylabelsize
+    lines!(gdp_ax, sorted_data.year, sorted_data.gdp_per_capita,
+           color = :firebrick, linewidth = 2.5, label = "GDP per capita")
 
     return nothing
 end
@@ -212,10 +183,61 @@ println("\n🧪 Testing plotting function with California data...")
 ca_data = subset(time_series_data, :state => s -> s .== "CA")
 test_fig = Figure(size = (400, 300))
 test_gl = test_fig[1, 1] = GridLayout()
-dual_timeseries_plot!(test_gl, ca_data)
+
+# Create test kwargs list for the new API
+test_kwargs_list = [
+	# Population Axis
+    (
+    	xlabel = "Year",
+    	ylabel = "Population (M)",
+    	titlesize = 12,
+    	ylabelcolor = :steelblue,
+    	yticklabelcolor = :steelblue,
+
+    ),
+	# GDP Axis
+    (
+    	yaxisposition = :right,
+    	ylabel = "GDP per capita (\$)",
+    	ylabelcolor = :firebrick,
+    	yticklabelcolor = :firebrick
+		# Don't want duplication of axis and grid, so disable
+		xticksvisible = false,
+		xticklabelsvisible = false,
+		xgridvisible = false,
+		ygridvisible = false,
+		leftspinevisible = false,
+		rightspinevisible = false,
+		bottomspinevisible = false,
+		topspinevisible = false,
+    )
+]
+dual_timeseries_plot!(test_gl, ca_data; processed_axis_kwargs_list = test_kwargs_list)
 test_fig
 
 println("✅ Single state test successful")
+
+#%%
+geofacet(
+		time_series_data,
+		:state,
+		dual_timeseries_plot!;  # Pass our named function
+		figure_kwargs = (size = (4000, 2500), fontsize = 8),
+		common_axis_kwargs = (
+            titlesize = 10,
+            xlabelsize = 6,
+            ylabelsize = 6
+        ),
+        axis_kwargs_list = [
+            # Population axis (left)
+            (xlabel = "Year", ylabel = "Population (M)",
+             ylabelcolor = :steelblue, yticklabelcolor = :steelblue),
+            # GDP axis (right)
+            (yaxisposition = :right, ylabel = "GDP per capita (\$)",
+             ylabelcolor = :firebrick, yticklabelcolor = :firebrick)
+        ],
+		link_axes = :both  # Link x-axes for time comparison
+	).figure
 
 #%%
 Create the full geofaceted plot
@@ -227,15 +249,28 @@ try
 		:state,
 		dual_timeseries_plot!;  # Pass our named function
 		figure_kwargs = (size = (4000, 2500), fontsize = 8),
-		axis_kwargs = (titlesize = 10, xlabelsize = 6, ylabelsize = 6),
+		common_axis_kwargs = (
+            titlesize = 10,
+            xlabelsize = 6,
+            ylabelsize = 6
+        ),
+        axis_kwargs_list = [
+            # Population axis (left)
+            (xlabel = "Year", ylabel = "Population (M)",
+             ylabelcolor = :steelblue, yticklabelcolor = :steelblue),
+            # GDP axis (right)
+            (yaxisposition = :right, ylabel = "GDP per capita (\$)",
+             ylabelcolor = :firebrick, yticklabelcolor = :firebrick)
+        ],
 		link_axes = :x  # Link x-axes for time comparison
 	);
 
 	println("✅ Successfully created dual time series geofacet plot")
-	println("   - States included: $(length(result.axes))")
+	println("   - States included: $(length(result.gls))")
 	println("   - Time range: $(minimum(time_series_data.year)) - $(maximum(time_series_data.year))")
 	println("   - X-axes linked for temporal comparison")
 	println("   - Dual y-axes: Population (left, blue) + GDP (right, red)")
+	println("   - Using new multi-axis kwargs API")
 
 	# Save the comprehensive plot
 	save("examples/full_states_dual_timeseries.png", result.figure)
@@ -268,7 +303,19 @@ try
         :state,
         dual_timeseries_plot!;
         figure_kwargs = (size = (1400, 900), fontsize = 11),
-        axis_kwargs = (titlesize = 12, xlabelsize = 10, ylabelsize = 10),
+        common_axis_kwargs = (
+            titlesize = 12,
+            xlabelsize = 10,
+            ylabelsize = 10
+        ),
+        axis_kwargs_list = [
+            # Population axis (left)
+            (xlabel = "Year", ylabel = "Population (M)",
+             ylabelcolor = :steelblue, yticklabelcolor = :steelblue),
+            # GDP axis (right)
+            (yaxisposition = :right, ylabel = "GDP per capita (\$)",
+             ylabelcolor = :firebrick, yticklabelcolor = :firebrick)
+        ],
         link_axes = :x
     )
 
@@ -300,5 +347,9 @@ println("\n💡 Key implementation details:")
 println("  - dual_timeseries_plot!() function creates dual y-axes")
 println("  - Population plotted on left axis (blue)")
 println("  - GDP per capita on right axis (red)")
+println("  - Uses new multi-axis kwargs API with processed_axis_kwargs_list")
+println("  - common_axis_kwargs applied to both axes")
+println("  - axis_kwargs_list provides per-axis specific styling")
+println("  - Automatic decoration hiding with hide_inner_decorations")
 println("  - Function passed directly to geofacet() as named parameter")
 println("  - Comprehensive error handling and data validation")
