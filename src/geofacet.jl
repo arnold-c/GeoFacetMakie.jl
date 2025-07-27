@@ -44,7 +44,7 @@ Create a geographically faceted plot using the specified grid layout.
 # Arguments
 - `data`: DataFrame or similar tabular data structure
 - `region_col`: Symbol or string specifying the column containing region identifiers
-- `plot_func`: Function that takes `(axis, data_subset)` and creates plots
+- `plot_func`: Function that takes `(gridlayout, data_subset)` and creates plots
 
 # Keyword Arguments
 - `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid`)
@@ -70,16 +70,28 @@ data = DataFrame(
     population = [39_500_000, 29_000_000, 19_500_000]
 )
 
-# Create bar plots for each state
-result = geofacet(data, :state,
-    (ax, data) -> barplot!(ax, [1], data.population))
+# Create bar plots for each state (simple single-axis plot)
+result = geofacet(data, :state, (layout, data) -> begin
+    ax = Axis(layout[1, 1])
+    barplot!(ax, [1], data.population)
+end)
 
 # Display the figure
 result.figure
+
+# For complex multi-axis plots:
+result = geofacet(data, :state, (layout, data) -> begin
+    ax1 = Axis(layout[1, 1])
+    ax2 = Axis(layout[2, 1])
+    barplot!(ax1, [1], data.population)
+    barplot!(ax2, [1], data.gdp)
+end)
 ```
 """
 function geofacet(
-        data, region_col, plot_func;
+        data,
+        region_col,
+        plot_func;
         grid = us_state_grid,
         figure_kwargs = NamedTuple(),
         axis_kwargs = NamedTuple(),
@@ -125,7 +137,7 @@ function geofacet(
     grid_layout = fig[1, 1] = GridLayout()
 
     # Create axes dictionary and data mapping
-    axes_dict = Dict{String, Axis}()
+    gl_dict = Dict{String, GridLayout}()
     data_mapping = Dict{String, Any}()
 
     # Handle missing regions check
@@ -142,8 +154,8 @@ function geofacet(
     # Create axes for all grid positions
     for (region_code, (row, col)) in grid.positions
         # Create axis at grid position
-        ax = Axis(grid_layout[row, col]; axis_kwargs...)
-        axes_dict[region_code] = ax
+        gl = GridLayout(grid_layout[row, col])
+        gl_dict[region_code] = gl
 
         # Check if we have data for this region
         region_data = _find_region_data(grouped_data, region_code)
@@ -154,7 +166,7 @@ function geofacet(
 
             # Execute plot function with error handling
             try
-                plot_func(ax, region_data)
+                plot_func(gl, region_data; axis_kwargs...)
             catch e
                 @warn "Error plotting region $region_code: $e"
                 # Continue with other regions
@@ -168,27 +180,28 @@ function geofacet(
                 ylims!(ax, 0, 1)
             elseif missing_regions == :skip
                 # Leave axis empty
-                hidedecorations!(ax)
-                hidespines!(ax)
+                hide_all_decorations!(gl)
             end
         end
     end
 
     # Apply axis linking
-    if link_axes != :none && !isempty(axes_dict)
-        axes_list = collect(values(axes_dict))
+    if link_axes != :none && !isempty(gl_dict)
+        gl_list = collect(values(gl_dict))
+        gl_axes = collect_gl_axes(gl_list)
         if link_axes == :x
-            linkxaxes!(axes_list...)
+            linkxaxes!(gl_axes...)
         elseif link_axes == :y
-            linkyaxes!(axes_list...)
+            linkyaxes!(gl_axes...)
         elseif link_axes == :both
-            linkaxes!(axes_list...)
+            linkxaxes!(gl_axes...)
+            linkyaxes!(gl_axes...)
         end
     end
 
     return (
         figure = fig,
-        axes = axes_dict,
+        gls = gl_dict,
         grid_layout = grid_layout,
         data_mapping = data_mapping,
     )
@@ -242,3 +255,25 @@ function _find_region_data(grouped_data, region_code)
     return nothing
 end
 
+function hide_all_decorations!(layout::GridLayout)
+    # Find all Axis objects in the GridLayout
+    for content in layout.content
+        if content.content isa Axis
+            hidedecorations!(content.content)
+            hidespines!(content.content)
+        end
+    end
+    return nothing
+end
+
+function collect_gl_axes(layouts::Vector{GridLayout})
+    axes = Axis[]
+
+    for layout in layouts, content in layout.content
+        if content.content isa Axis
+            push!(axes, content.content)
+        end
+    end
+
+    return axes
+end
