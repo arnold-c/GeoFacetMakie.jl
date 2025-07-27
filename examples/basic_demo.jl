@@ -67,7 +67,6 @@ function barplot_fn!(gl, data; axis_kwargs...)
     ax = Axis(gl[1, 1]; axis_kwargs...)
     barplot!(ax, [1], data.population, color = :steelblue)
     ax.title = data.state[1]  # Set title to state name
-    ax.ylabel = "Population (M)"
     ax.xticksvisible = false # Remove x-axis ticks for cleaner look
     ax.xticklabelsvisible = false
     return nothing
@@ -84,9 +83,9 @@ try
         sample_data,
         :state,
         barplot_fn!;
-        link_axes = :none,
+        link_axes = :both,
         figure_kwargs = (size = (1200, 800),),
-        axis_kwargs = (titlesize = 14,)
+        axis_kwargs = (titlesize = 14, ylabel = "Population (M)")
     )
 
     println("✅ Successfully created population bar plot")
@@ -103,30 +102,6 @@ catch e
 end
 
 #%%
-geofacet(
-    sample_data, :state,
-    (gl, data; axis_kwargs...) -> begin
-        ax = Axis(gl[1, 1]; axis_kwargs...)
-        scatter!(
-            ax, data.gdp_per_capita, data.unemployment_rate,
-            color = :coral, markersize = 12
-        )
-        ax.title = data.state[1]
-        ax.xlabel = "GDP per capita (\$)"
-        ax.ylabel = "Unemployment (%)"
-    end,
-    link_axes = :both,  # Link both x and y axes
-    figure_kwargs = (size = (1800, 1200),),
-    axis_kwargs = (
-        titlesize = 12,
-        xlabelsize = 8,
-        ylabelsize = 8,
-        xticklabelsize = 6,
-        yticklabelsize = 6,
-    )
-).figure
-
-#%%
 # Example 2: Scatter plot with linked axes
 println("\n💰 Example 2: GDP vs Unemployment (Scatter Plot with Linked Axes)")
 println("-"^65)
@@ -141,13 +116,13 @@ try
                 color = :coral, markersize = 12
             )
             ax.title = data.state[1]
-            ax.xlabel = "GDP per capita (\$)"
-            ax.ylabel = "Unemployment (%)"
         end,
         link_axes = :both,  # Link both x and y axes
         figure_kwargs = (size = (1800, 1200),),
         axis_kwargs = (
             titlesize = 12,
+            xlabel = "GDP per capita (\$)",
+            ylabel = "Unemployment (%)",
             xlabelsize = 8,
             ylabelsize = 8,
             xticklabelsize = 6,
@@ -202,13 +177,13 @@ try
                 color = :darkgreen, linewidth = 2
             )
             ax.title = data.state[1]
-            ax.xlabel = "Year"
-            ax.ylabel = "Population (M)"
         end,
         link_axes = :y,  # Link y-axes for comparison
         figure_kwargs = (size = (1200, 800),),
         axis_kwargs = (
             titlesize = 14,
+            xlabel = "Year",
+            ylabel = "Population (M)",
             xlabelsize = 12,
             ylabelsize = 12,
             xticklabelsize = 10,

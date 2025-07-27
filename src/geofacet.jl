@@ -50,7 +50,9 @@ Create a geographically faceted plot using the specified grid layout.
 # Keyword Arguments
 - `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid`)
 - `figure_kwargs`: NamedTuple passed to `Figure()` constructor
-- `axis_kwargs`: NamedTuple passed to each `Axis()` constructor
+- `axis_kwargs`: NamedTuple passed to each `Axis()` constructor. **Important**: To ensure proper
+  hiding of axis decorations when `hide_inner_decorations = true`, axis labels (`xlabel`, `ylabel`)
+  should be specified here rather than within the plot function.
 - `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
 - `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
 - `hide_inner_decorations`: Bool controlling whether to hide axis decorations on inner facets
