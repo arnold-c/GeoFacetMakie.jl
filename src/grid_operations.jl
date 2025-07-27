@@ -2,7 +2,7 @@
 Grid operations and utility functions for GeoFacetMakie.jl
 """
 
-export grid_dimensions, validate_grid, has_region, get_position, get_region_at, get_regions, is_complete_rectangle
+export grid_dimensions, validate_grid, has_region, get_position, get_region_at, get_regions, is_complete_rectangle, has_neighbor_below, has_neighbor_left, has_neighbor_right, has_neighbor_above
 
 """
     grid_dimensions(grid::GeoGrid) -> Tuple{Int, Int}
@@ -100,3 +100,54 @@ function is_complete_rectangle(grid::GeoGrid)
     return expected_cells == actual_cells
 end
 
+"""
+    has_neighbor_below(grid::GeoGrid, region::String) -> Bool
+
+Check if a region has a neighboring region directly below it (row + 1, same column).
+Returns `false` if the region doesn't exist in the grid.
+"""
+function has_neighbor_below(grid::GeoGrid, region::String)
+    pos = get_position(grid, region)
+    isnothing(pos) && return false
+    row, col = pos
+    return !isnothing(get_region_at(grid, row + 1, col))
+end
+
+"""
+    has_neighbor_left(grid::GeoGrid, region::String) -> Bool
+
+Check if a region has a neighboring region directly to its left (same row, col - 1).
+Returns `false` if the region doesn't exist in the grid.
+"""
+function has_neighbor_left(grid::GeoGrid, region::String)
+    pos = get_position(grid, region)
+    isnothing(pos) && return false
+    row, col = pos
+    return !isnothing(get_region_at(grid, row, col - 1))
+end
+
+"""
+    has_neighbor_right(grid::GeoGrid, region::String) -> Bool
+
+Check if a region has a neighboring region directly to its right (same row, col + 1).
+Returns `false` if the region doesn't exist in the grid.
+"""
+function has_neighbor_right(grid::GeoGrid, region::String)
+    pos = get_position(grid, region)
+    isnothing(pos) && return false
+    row, col = pos
+    return !isnothing(get_region_at(grid, row, col + 1))
+end
+
+"""
+    has_neighbor_above(grid::GeoGrid, region::String) -> Bool
+
+Check if a region has a neighboring region directly above it (row - 1, same column).
+Returns `false` if the region doesn't exist in the grid.
+"""
+function has_neighbor_above(grid::GeoGrid, region::String)
+    pos = get_position(grid, region)
+    isnothing(pos) && return false
+    row, col = pos
+    return !isnothing(get_region_at(grid, row - 1, col))
+end

@@ -37,6 +37,7 @@ end
              axis_kwargs = NamedTuple(),
              link_axes = :none,
              missing_regions = :skip,
+             hide_inner_decorations = true,
              kwargs...)
 
 Create a geographically faceted plot using the specified grid layout.
@@ -52,6 +53,9 @@ Create a geographically faceted plot using the specified grid layout.
 - `axis_kwargs`: NamedTuple passed to each `Axis()` constructor
 - `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
 - `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
+- `hide_inner_decorations`: Bool controlling whether to hide axis decorations on inner facets
+  when axes are linked (default: `true`). Only affects linked axes - e.g., if `link_axes = :x`,
+  only x-axis decorations are hidden for facets with neighbors below.
 
 # Returns
 A NamedTuple with:
@@ -97,6 +101,7 @@ function geofacet(
         axis_kwargs = NamedTuple(),
         link_axes = :none,
         missing_regions = :skip,
+        hide_inner_decorations = true,
         kwargs...
     )
 
@@ -157,6 +162,37 @@ function geofacet(
         gl = GridLayout(grid_layout[row, col])
         gl_dict[region_code] = gl
 
+        # Modify axis_kwargs based on neighbor detection and axis linking
+        region_axis_kwargs = axis_kwargs
+        if hide_inner_decorations
+            decoration_kwargs = NamedTuple()
+
+            # Only hide x-axis decorations if x-axes are linked AND there's a neighbor below
+            if (link_axes == :x || link_axes == :both) && has_neighbor_below(grid, region_code)
+                decoration_kwargs = merge(
+                    decoration_kwargs, (
+                        xticksvisible = false,
+                        xticklabelsvisible = false,
+                        xlabelvisible = false,
+                    )
+                )
+            end
+
+            # Only hide y-axis decorations if y-axes are linked AND there's a neighbor to the left
+            if (link_axes == :y || link_axes == :both) && has_neighbor_left(grid, region_code)
+                decoration_kwargs = merge(
+                    decoration_kwargs, (
+                        yticksvisible = false,
+                        yticklabelsvisible = false,
+                        ylabelvisible = false,
+                    )
+                )
+            end
+
+            # Merge with original axis_kwargs
+            region_axis_kwargs = merge(axis_kwargs, decoration_kwargs)
+        end
+
         # Check if we have data for this region
         region_data = _find_region_data(grouped_data, region_code)
 
@@ -166,7 +202,7 @@ function geofacet(
 
             # Execute plot function with error handling
             try
-                plot_func(gl, region_data; axis_kwargs...)
+                plot_func(gl, region_data; region_axis_kwargs...)
             catch e
                 @warn "Error plotting region $region_code: $e"
                 # Continue with other regions
@@ -175,7 +211,7 @@ function geofacet(
             # No data for this region
             if missing_regions == :empty
                 # Create empty axis with region label
-                ax = Axis(gl[1, 1])
+                ax = Axis(gl[1, 1]; region_axis_kwargs...)
                 text!(ax, 0.5, 0.5, text = region_code, align = (:center, :center))
                 xlims!(ax, 0, 1)
                 ylims!(ax, 0, 1)
