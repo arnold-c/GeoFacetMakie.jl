@@ -30,7 +30,7 @@ grid = GeoGrid("test", Dict(
 struct GeoGrid
     name::String
     positions::Dict{String, Tuple{Int, Int}}
-    
+
     function GeoGrid(name::String, positions::Dict{String, Tuple{Int, Int}})
         # Validate region names
         for region_name in keys(positions)
@@ -38,14 +38,15 @@ struct GeoGrid
                 throw(ArgumentError("Region names cannot be empty or whitespace-only"))
             end
         end
-        
+
         # Validate positions are positive
         for (region, (row, col)) in positions
             if row <= 0 || col <= 0
                 throw(ArgumentError("Grid positions must be positive integers (≥ 1), got ($row, $col) for region '$region'"))
             end
         end
-        
-        new(name, positions)
+
+        return new(name, positions)
     end
 end
+

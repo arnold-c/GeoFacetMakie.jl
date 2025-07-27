@@ -14,7 +14,7 @@ function grid_dimensions(grid::GeoGrid)
     if isempty(grid.positions)
         return (0, 0)
     end
-    
+
     max_row = maximum(pos[1] for pos in values(grid.positions))
     max_col = maximum(pos[2] for pos in values(grid.positions))
     return (max_row, max_col)
@@ -28,7 +28,7 @@ Returns `true` if valid, throws `ArgumentError` if conflicts exist.
 """
 function validate_grid(grid::GeoGrid)
     position_to_region = Dict{Tuple{Int, Int}, String}()
-    
+
     for (region, position) in grid.positions
         if haskey(position_to_region, position)
             existing_region = position_to_region[position]
@@ -36,7 +36,7 @@ function validate_grid(grid::GeoGrid)
         end
         position_to_region[position] = region
     end
-    
+
     return true
 end
 
@@ -92,10 +92,11 @@ function is_complete_rectangle(grid::GeoGrid)
     if isempty(grid.positions)
         return true  # Empty grid is technically complete
     end
-    
+
     max_row, max_col = grid_dimensions(grid)
     expected_cells = max_row * max_col
     actual_cells = length(grid.positions)
-    
+
     return expected_cells == actual_cells
 end
+
