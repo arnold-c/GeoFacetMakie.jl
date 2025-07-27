@@ -15,7 +15,7 @@ Load a geographical grid from a CSV file in geofacet format.
 
 The CSV file should have columns: row, col, code, name
 - row: Grid row position (integer)
-- col: Grid column position (integer) 
+- col: Grid column position (integer)
 - code: Region identifier/abbreviation (string)
 - name: Full region name (string)
 
@@ -34,24 +34,26 @@ function load_grid_from_csv(csv_path::String)
     if !isfile(csv_path)
         throw(ArgumentError("Grid file not found: $csv_path"))
     end
-    
+
     try
         df = CSV.read(csv_path, DataFrame)
-        
+
         # Validate required columns
         required_cols = ["row", "col", "code", "name"]
         missing_cols = setdiff(required_cols, names(df))
         if !isempty(missing_cols)
             throw(ArgumentError("Missing required columns: $(join(missing_cols, ", "))"))
         end
-        
+
         # Create StructArray directly from DataFrame columns
-        return StructArray{GridEntry}((
-            region = string.(df.code),
-            row = df.row,
-            col = df.col
-        ))
-        
+        return StructArray{GridEntry}(
+            (
+                region = string.(df.code),
+                row = df.row,
+                col = df.col,
+            )
+        )
+
     catch e
         if isa(e, ArgumentError)
             rethrow(e)
@@ -85,7 +87,7 @@ function load_us_state_grid(version::Int = 1)
     if version ∉ [1, 2, 3]
         throw(ArgumentError("US state grid version must be 1, 2, or 3"))
     end
-    
+
     grid_file = joinpath(@__DIR__, "data", "grids", "us_state_grid$(version).csv")
     return load_grid_from_csv(grid_file)
 end
@@ -110,7 +112,7 @@ function load_us_state_grid_without_dc(version::Int = 1)
     if version ∉ [1, 2, 3]
         throw(ArgumentError("US state grid version must be 1, 2, or 3"))
     end
-    
+
     grid_file = joinpath(@__DIR__, "data", "grids", "us_state_without_DC_grid$(version).csv")
     return load_grid_from_csv(grid_file)
 end
@@ -152,7 +154,7 @@ function list_available_grids()
     if !isdir(grids_dir)
         return String[]
     end
-    
+
     csv_files = filter(f -> endswith(f, ".csv"), readdir(grids_dir))
     return [splitext(f)[1] for f in csv_files]
 end
@@ -180,5 +182,6 @@ function load_grid(grid_name::String)
 end
 
 # Export functions
-export load_grid_from_csv, load_us_state_grid, load_us_state_grid_without_dc, 
-       load_us_contiguous_grid, list_available_grids, load_grid
+export load_grid_from_csv, load_us_state_grid, load_us_state_grid_without_dc,
+    load_us_contiguous_grid, list_available_grids, load_grid
+

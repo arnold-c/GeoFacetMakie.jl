@@ -25,6 +25,10 @@ module GeoFacetMakie
 
 using Makie
 using DataFrames
+using StructArrays
+
+# Re-export StructArrays for test convenience
+export StructArrays
 
 # Include submodules
 include("structs.jl")

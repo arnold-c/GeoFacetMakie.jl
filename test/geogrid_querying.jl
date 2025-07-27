@@ -2,8 +2,12 @@
 Tests for GeoGrid querying and utility functions
 """
 
+using Test
+using GeoFacetMakie
+
 @testset "Grid Querying" begin
-    grid = GeoGrid("test", Dict("CA" => (1, 1), "NY" => (1, 2), "TX" => (2, 1)))
+    entries = [GridEntry("CA", 1, 1), GridEntry("NY", 1, 2), GridEntry("TX", 2, 1)]
+    grid = StructArrays.StructArray(entries)
 
     # Check if region exists
     @test has_region(grid, "CA") == true
@@ -30,13 +34,12 @@ end
     #   A B C
     #   D   F
     #   G H I
-    grid = GeoGrid(
-        "test", Dict(
-            "A" => (1, 1), "B" => (1, 2), "C" => (1, 3),
-            "D" => (2, 1), "F" => (2, 3),
-            "G" => (3, 1), "H" => (3, 2), "I" => (3, 3)
-        )
-    )
+    entries = [
+        GridEntry("A", 1, 1), GridEntry("B", 1, 2), GridEntry("C", 1, 3),
+        GridEntry("D", 2, 1), GridEntry("F", 2, 3),
+        GridEntry("G", 3, 1), GridEntry("H", 3, 2), GridEntry("I", 3, 3)
+    ]
+    grid = StructArrays.StructArray(entries)
 
     # Test has_neighbor_below
     @test has_neighbor_below(grid, "A") == true   # A has D below
@@ -72,7 +75,7 @@ end
 end
 
 @testset "Type Stability" begin
-    grid = GeoGrid("test", Dict("CA" => (1, 1)))
+    grid = StructArrays.StructArray([GridEntry("CA", 1, 1)])
 
     # Test that functions return expected types
     @test grid_dimensions(grid) isa Tuple{Int, Int}

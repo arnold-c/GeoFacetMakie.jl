@@ -490,12 +490,11 @@ using GeoFacetMakie
         # Test with a simple 2x2 grid to verify decoration logic
         #   A B
         #   C D
-        simple_grid = GeoGrid(
-            "test", Dict(
-                "A" => (1, 1), "B" => (1, 2),
-                "C" => (2, 1), "D" => (2, 2)
-            )
-        )
+        simple_entries = [
+            GridEntry("A", 1, 1), GridEntry("B", 1, 2),
+            GridEntry("C", 2, 1), GridEntry("D", 2, 2),
+        ]
+        simple_grid = StructArrays.StructArray(simple_entries)
         simple_data = DataFrame(
             state = ["A", "B", "C", "D"],
             value = [1, 2, 3, 4]
@@ -634,9 +633,8 @@ using GeoFacetMakie
         @test !isnothing(result2.figure)
 
         # Test that decoration hiding works with multi-axis
-        simple_grid = GeoGrid(
-            "test", Dict("A" => (1, 1), "B" => (1, 2))
-        )
+        simple_entries = [GridEntry("A", 1, 1), GridEntry("B", 1, 2)]
+        simple_grid = StructArrays.StructArray(simple_entries)
 
         result3 = geofacet(
             test_data, :state, multi_axis_new_api!;

@@ -12,18 +12,17 @@ using GeoFacetMakie
             for version in 1:3
                 grid = load_us_state_grid(version)
                 @test isa(grid, GeoGrid)
-                @test grid.name == "us_state_grid$(version)"
 
                 # Should have 50 states + DC = 51 regions
-                @test length(grid.positions) == 51
+                @test length(grid) == 51
 
                 # Check that DC is included
-                @test haskey(grid.positions, "DC")
+                @test "DC" in grid.region
 
                 # Check some known states
-                @test haskey(grid.positions, "CA")
-                @test haskey(grid.positions, "TX")
-                @test haskey(grid.positions, "NY")
+                @test "CA" in grid.region
+                @test "TX" in grid.region
+                @test "NY" in grid.region
             end
         end
 
@@ -36,7 +35,9 @@ using GeoFacetMakie
         @testset "Default version" begin
             grid_default = load_us_state_grid()
             grid_v1 = load_us_state_grid(1)
-            @test grid_default.positions == grid_v1.positions
+            @test grid_default.region == grid_v1.region
+            @test grid_default.row == grid_v1.row
+            @test grid_default.col == grid_v1.col
         end
     end
 
@@ -45,18 +46,17 @@ using GeoFacetMakie
             for version in 1:3
                 grid = load_us_state_grid_without_dc(version)
                 @test isa(grid, GeoGrid)
-                @test grid.name == "us_state_without_DC_grid$(version)"
 
                 # Should have 50 states (no DC)
-                @test length(grid.positions) == 50
+                @test length(grid) == 50
 
                 # Check that DC is NOT included
-                @test !haskey(grid.positions, "DC")
+                @test !("DC" in grid.region)
 
                 # Check some known states are still there
-                @test haskey(grid.positions, "CA")
-                @test haskey(grid.positions, "TX")
-                @test haskey(grid.positions, "NY")
+                @test "CA" in grid.region
+                @test "TX" in grid.region
+                @test "NY" in grid.region
             end
         end
 
@@ -69,23 +69,22 @@ using GeoFacetMakie
     @testset "load_us_contiguous_grid" begin
         grid = load_us_contiguous_grid()
         @test isa(grid, GeoGrid)
-        @test grid.name == "us_state_contiguous_grid1"
 
         # Should have 48 contiguous states + DC = 49 regions
-        @test length(grid.positions) == 49
+        @test length(grid) == 49
 
         # Should include DC
-        @test haskey(grid.positions, "DC")
+        @test "DC" in grid.region
 
         # Should NOT include Alaska and Hawaii
-        @test !haskey(grid.positions, "AK")
-        @test !haskey(grid.positions, "HI")
+        @test !("AK" in grid.region)
+        @test !("HI" in grid.region)
 
         # Should include contiguous states
-        @test haskey(grid.positions, "CA")
-        @test haskey(grid.positions, "TX")
-        @test haskey(grid.positions, "FL")
-        @test haskey(grid.positions, "ME")
+        @test "CA" in grid.region
+        @test "TX" in grid.region
+        @test "FL" in grid.region
+        @test "ME" in grid.region
     end
 
     @testset "list_available_grids" begin
@@ -113,8 +112,7 @@ using GeoFacetMakie
         @testset "Valid grid names" begin
             grid = load_grid("us_state_grid1")
             @test isa(grid, GeoGrid)
-            @test grid.name == "us_state_grid1"
-            @test length(grid.positions) == 51  # 50 states + DC
+            @test length(grid) == 51  # 50 states + DC
         end
 
         @testset "Invalid grid names" begin
@@ -131,10 +129,10 @@ using GeoFacetMakie
 
                 # Basic structure tests
                 @test isa(grid, GeoGrid)
-                @test !isempty(grid.positions)
+                @test !isempty(grid)
 
                 # All regions should have valid positions
-                for (code, (row, col)) in grid.positions
+                for (code, row, col) in grid
                     @test isa(row, Int)
                     @test isa(col, Int)
                     @test row > 0
@@ -149,14 +147,12 @@ using GeoFacetMakie
 
     @testset "us_state_grid constant" begin
         @test isa(us_state_grid, GeoGrid)
-        @test us_state_grid.name == "us_state_grid1"
-        @test length(us_state_grid.positions) == 51  # 50 states + DC
+        @test length(us_state_grid) == 51  # 50 states + DC
 
         # Check some known states
-        @test haskey(us_state_grid.positions, "CA")
-        @test haskey(us_state_grid.positions, "TX")
-        @test haskey(us_state_grid.positions, "DC")
+        @test "CA" in us_state_grid.region
+        @test "TX" in us_state_grid.region
+        @test "DC" in us_state_grid.region
     end
 
 end
-
