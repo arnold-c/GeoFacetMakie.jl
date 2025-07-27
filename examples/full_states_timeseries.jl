@@ -200,7 +200,7 @@ test_kwargs_list = [
     	yaxisposition = :right,
     	ylabel = "GDP per capita (\$)",
     	ylabelcolor = :firebrick,
-    	yticklabelcolor = :firebrick
+    	yticklabelcolor = :firebrick,
 		# Don't want duplication of axis and grid, so disable
 		xticksvisible = false,
 		xticklabelsvisible = false,

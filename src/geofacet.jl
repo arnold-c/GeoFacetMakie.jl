@@ -31,23 +31,32 @@ const us_state_grid = let
 end
 
 """
-    _merge_axis_kwargs(common_kwargs, per_axis_kwargs_list, decoration_kwargs, num_axes)
+    _get_yaxis_position(axis_kwargs)
 
-Merge common axis kwargs, per-axis kwargs, and decoration hiding kwargs.
+Get the yaxis position from axis kwargs, defaulting to :left (Makie's default).
+"""
+function _get_yaxis_position(axis_kwargs::NamedTuple)
+    return get(axis_kwargs, :yaxisposition, :left)
+end
+
+"""
+    _merge_axis_kwargs(common_kwargs, per_axis_kwargs_list, per_axis_decoration_kwargs, num_axes)
+
+Merge common axis kwargs, per-axis kwargs, and per-axis decoration hiding kwargs.
 Returns a vector of merged NamedTuples for each axis.
 
 # Arguments
 - `common_kwargs`: NamedTuple applied to all axes
 - `per_axis_kwargs_list`: Vector of NamedTuples for per-axis kwargs
-- `decoration_kwargs`: NamedTuple with decoration hiding settings
+- `per_axis_decoration_kwargs`: Vector of NamedTuples with per-axis decoration hiding settings
 - `num_axes`: Number of axes (used when per_axis_kwargs_list is shorter)
 
 # Merging Priority (highest to lowest)
-1. Decoration hiding kwargs
+1. Per-axis decoration hiding kwargs
 2. Per-axis kwargs from axis_kwargs_list[i]
 3. Common kwargs from common_axis_kwargs
 """
-function _merge_axis_kwargs(common_kwargs, per_axis_kwargs_list, decoration_kwargs, num_axes)
+function _merge_axis_kwargs(common_kwargs, per_axis_kwargs_list, per_axis_decoration_kwargs, num_axes)
     # If no specific number of axes requested and no per-axis kwargs, default to 1
     if num_axes == 0 && isempty(per_axis_kwargs_list)
         num_axes = 1
@@ -66,8 +75,10 @@ function _merge_axis_kwargs(common_kwargs, per_axis_kwargs_list, decoration_kwar
             merged = merge(merged, per_axis_kwargs_list[i])
         end
 
-        # Add decoration kwargs (highest priority)
-        merged = merge(merged, decoration_kwargs)
+        # Add per-axis decoration kwargs (highest priority)
+        if i <= length(per_axis_decoration_kwargs)
+            merged = merge(merged, per_axis_decoration_kwargs[i])
+        end
 
         push!(processed_kwargs, merged)
     end
@@ -101,7 +112,8 @@ Create a geographically faceted plot using the specified grid layout.
   should be specified here rather than within the plot function.
 - `axis_kwargs_list`: Vector of NamedTuples for per-axis specific kwargs. Each element corresponds
   to an axis in the order they are created in the plot function. These are merged with
-  `common_axis_kwargs` (per-axis takes precedence).
+  `common_axis_kwargs` (per-axis takes precedence). If multiple axes are plotted on the same facet, you
+  should set the position within each NamedTuple using the kwarg `yaxisposition` (defaults to `:left`)
 - `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
 - `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
 - `hide_inner_decorations`: Bool controlling whether to hide axis decorations on inner facets
@@ -226,39 +238,64 @@ function geofacet(
         gl = GridLayout(grid_layout[row, col])
         gl_dict[region_code] = gl
 
-        # Calculate decoration hiding kwargs based on neighbor detection and axis linking
-        decoration_kwargs = NamedTuple()
-        if hide_inner_decorations
-            # Only hide x-axis decorations if x-axes are linked AND there's a neighbor below
-            if (link_axes == :x || link_axes == :both) && has_neighbor_below(grid, region_code)
-                decoration_kwargs = merge(
-                    decoration_kwargs, (
-                        xticksvisible = false,
-                        xticklabelsvisible = false,
-                        xlabelvisible = false,
+        # For backward compatibility, if axis_kwargs_list is empty, use a single axis
+        num_axes = isempty(axis_kwargs_list) ? 1 : length(axis_kwargs_list)
+
+        # Calculate per-axis decoration hiding kwargs based on neighbor detection and axis linking
+        per_axis_decoration_kwargs = NamedTuple[]
+
+        for i in 1:num_axes
+            axis_decoration_kwargs = NamedTuple()
+
+            if hide_inner_decorations
+                # Only hide x-axis decorations if x-axes are linked AND there's a neighbor below
+                if (link_axes == :x || link_axes == :both) && has_neighbor_below(grid, region_code)
+                    axis_decoration_kwargs = merge(
+                        axis_decoration_kwargs, (
+                            xticksvisible = false,
+                            xticklabelsvisible = false,
+                            xlabelvisible = false,
+                        )
                     )
-                )
+                end
+
+                # For y-axis decorations, check ylabel position for this specific axis
+                if (link_axes == :y || link_axes == :both)
+                    # First merge common and per-axis kwargs to determine ylabel position
+                    temp_kwargs = common_axis_kwargs
+                    if i <= length(axis_kwargs_list)
+                        temp_kwargs = merge(temp_kwargs, axis_kwargs_list[i])
+                    end
+
+                    ylabel_pos = _get_yaxis_position(temp_kwargs)
+
+                    # Check appropriate neighbor based on ylabel position
+                    should_hide_y = if ylabel_pos == :right
+                        has_neighbor_right(grid, region_code)
+                    else  # :left (default)
+                        has_neighbor_left(grid, region_code)
+                    end
+
+                    if should_hide_y
+                        axis_decoration_kwargs = merge(
+                            axis_decoration_kwargs, (
+                                yticksvisible = false,
+                                yticklabelsvisible = false,
+                                ylabelvisible = false,
+                            )
+                        )
+                    end
+                end
             end
 
-            # Only hide y-axis decorations if y-axes are linked AND there's a neighbor to the left
-            if (link_axes == :y || link_axes == :both) && has_neighbor_left(grid, region_code)
-                decoration_kwargs = merge(
-                    decoration_kwargs, (
-                        yticksvisible = false,
-                        yticklabelsvisible = false,
-                        ylabelvisible = false,
-                    )
-                )
-            end
+            push!(per_axis_decoration_kwargs, axis_decoration_kwargs)
         end
 
         # Merge all kwargs for this region's axes
-        # For backward compatibility, if axis_kwargs_list is empty, use a single axis
-        num_axes = isempty(axis_kwargs_list) ? 1 : length(axis_kwargs_list)
         processed_axis_kwargs_list = _merge_axis_kwargs(
             common_axis_kwargs,
             axis_kwargs_list,
-            decoration_kwargs,
+            per_axis_decoration_kwargs,
             num_axes
         )
 
