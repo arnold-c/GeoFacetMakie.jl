@@ -13,11 +13,12 @@ using DataFrames
 
 Load a geographical grid from a CSV file in geofacet format.
 
-The CSV file should have columns: row, col, code, name
+The CSV file should have columns: row, col, code, and optionally name
 - row: Grid row position (integer)
 - col: Grid column position (integer)
 - code: Region identifier/abbreviation (string)
-- name: Full region name (string)
+- name: Full region name (string, optional - defaults to code if missing)
+- Additional columns will be stored as metadata
 
 # Arguments
 - `csv_path::String`: Path to the CSV file
@@ -39,18 +40,47 @@ function load_grid_from_csv(csv_path::String)
         df = CSV.read(csv_path, DataFrame)
 
         # Validate required columns
-        required_cols = ["row", "col", "code", "name"]
+        required_cols = ["row", "col", "code"]
         missing_cols = setdiff(required_cols, names(df))
         if !isempty(missing_cols)
             throw(ArgumentError("Missing required columns: $(join(missing_cols, ", "))"))
         end
 
-        # Create StructArray directly from DataFrame columns
+        # Extract core data
+        regions = string.(df.code)
+        rows = df.row
+        cols = df.col
+
+        # Extract names (default to code if not present)
+        display_names = if "name" in names(df)
+            string.(df.name)
+        else
+            copy(regions)  # Default to region codes
+        end
+
+        # Extract metadata from additional columns
+        core_columns = ["row", "col", "code", "name"]
+        metadata_columns = setdiff(names(df), core_columns)
+
+        metadata = if isempty(metadata_columns)
+            # No additional columns, create empty metadata
+            [Dict{String, Any}() for _ in regions]
+        else
+            # Create metadata dictionaries from additional columns
+            [
+                Dict{String, Any}(col => df[i, col] for col in metadata_columns)
+                    for i in 1:nrow(df)
+            ]
+        end
+
+        # Create StructArray with all fields
         return StructArray{GridEntry}(
             (
-                region = string.(df.code),
-                row = df.row,
-                col = df.col,
+                region = regions,
+                row = rows,
+                col = cols,
+                name = display_names,
+                metadata = metadata,
             )
         )
 
@@ -184,4 +214,3 @@ end
 # Export functions
 export load_grid_from_csv, load_us_state_grid, load_us_state_grid_without_dc,
     load_us_contiguous_grid, list_available_grids, load_grid
-

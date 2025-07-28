@@ -26,7 +26,7 @@ const us_state_grid = let
     catch e
         @warn "Could not load us_state_grid: $e"
         # Fallback to empty grid if loading fails
-        GeoGrid(Dict{String, Tuple{Int, Int}}(), Dict{String, String}(), "us_state_grid1_fallback")
+        GeoGrid("us_state_grid1_fallback", Dict{String, Tuple{Int, Int}}())
     end
 end
 
@@ -159,8 +159,8 @@ end;
 ```
 """
 function geofacet(
-        data,
-        region_col,
+        data::D,
+        region_col::R,
         plot_func;
         grid = us_state_grid,
         figure_kwargs = NamedTuple(),
@@ -170,7 +170,7 @@ function geofacet(
         missing_regions = :skip,
         hide_inner_decorations = true,
         func_kwargs...
-    )
+    ) where {D <: AbstractDataFrame, R <: Union{<:AbstractString, <:Symbol}}
 
     # Input validation
     if isempty(data)
