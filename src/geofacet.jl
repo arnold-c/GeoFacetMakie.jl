@@ -95,7 +95,7 @@ end
              link_axes = :none,
              missing_regions = :skip,
              hide_inner_decorations = true,
-             kwargs...)
+            func_kwargs...)
 
 Create a geographically faceted plot using the specified grid layout.
 
@@ -169,7 +169,7 @@ function geofacet(
         link_axes = :none,
         missing_regions = :skip,
         hide_inner_decorations = true,
-        kwargs...
+        func_kwargs...
     )
 
     # Input validation
@@ -326,17 +326,17 @@ function geofacet(
                 # This allows simpler function signatures for single-axis plots
                 if length(processed_axis_kwargs_list) == 1
                     try
-                        plot_func(gl, region_data; processed_axis_kwargs_list[1]...)
+                        plot_func(gl, region_data; func_kwargs..., processed_axis_kwargs_list[1]...)
                     catch e
                         # If that fails, try the explicit API (for backwards compatibility)
                         if e isa UndefKeywordError && e.var == :processed_axis_kwargs_list
-                            plot_func(gl, region_data; processed_axis_kwargs_list = processed_axis_kwargs_list)
+                            plot_func(gl, region_data; func_kwargs..., processed_axis_kwargs_list = processed_axis_kwargs_list)
                         else
                             rethrow(e)
                         end
                     end
                 else
-                    plot_func(gl, region_data; processed_axis_kwargs_list = processed_axis_kwargs_list)
+                    plot_func(gl, region_data; func_kwargs..., processed_axis_kwargs_list = processed_axis_kwargs_list)
                 end
             catch e
                 @warn "Error plotting region $region_code: $e"
