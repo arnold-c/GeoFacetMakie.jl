@@ -21,16 +21,25 @@ using GeoFacetMakie
         deaths = [5, 6, 7, 10, 11, 12, 8, 9, 10]
     )
 
-    # Simple plot function for testing (GridLayout API)
-    function simple_plot_func!(gl, data; axis_kwargs...)
-        ax = Axis(gl[1, 1]; axis_kwargs...)
+    # Simple plot function for testing (GridLayout API) - using new simplified syntax
+    function simple_plot_func!(gl, data; kwargs...)
+        ax = Axis(gl[1, 1]; kwargs...)
         scatter!(ax, [1], data.value)
         return nothing
     end
 
-    function line_plot_func!(gl, data; axis_kwargs...)
-        ax = Axis(gl[1, 1]; axis_kwargs...)
+    function line_plot_func!(gl, data; kwargs...)
+        ax = Axis(gl[1, 1]; kwargs...)
         lines!(ax, data.date, data.cases)
+        return nothing
+    end
+
+    # Multi-axis plot function for testing - using explicit processed_axis_kwargs_list
+    function multi_axis_plot_func!(gl, data; processed_axis_kwargs_list)
+        ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
+        ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[2]...)
+        scatter!(ax1, [1], data.value)
+        scatter!(ax2, [1], data.secondary_value)
         return nothing
     end
     @testset "Basic Function Signature and Return Structure" begin
@@ -66,9 +75,9 @@ using GeoFacetMakie
         # Test that plot functions receive GridLayout objects correctly
         received_objects = []
 
-        function gridlayout_test_func!(gl, data; axis_kwargs...)
+        function gridlayout_test_func!(gl, data; kwargs...)
             push!(received_objects, gl)
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+            ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, [1], data.value)
             return nothing
         end
@@ -86,8 +95,8 @@ using GeoFacetMakie
 
     @testset "Single Axis Creation in GridLayout" begin
         # Test basic single axis creation within GridLayout
-        function single_axis_func!(gl, data; axis_kwargs...)
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        function single_axis_func!(gl, data; kwargs...)
+            ax = Axis(gl[1, 1]; kwargs...)
             barplot!(ax, [1], data.value, color = :steelblue)
             ax.title = data.state[1]
             ax.ylabel = "Value"
@@ -102,10 +111,10 @@ using GeoFacetMakie
 
     @testset "Multi-Axis Creation in GridLayout" begin
         # Test creating multiple axes within a single GridLayout (facet)
-        function multi_axis_func!(gl, data; axis_kwargs...)
+        function multi_axis_func!(gl, data; processed_axis_kwargs_list)
             # Create two axes in the same GridLayout
-            ax1 = Axis(gl[1, 1]; axis_kwargs...)
-            ax2 = Axis(gl[2, 1]; axis_kwargs...)
+            ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
+            ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[1]...)
 
             # Plot different data on each axis
             barplot!(ax1, [1], data.value, color = :steelblue)
@@ -142,12 +151,12 @@ using GeoFacetMakie
 
     @testset "Dual Y-Axis Implementation" begin
         # Test creating dual y-axis plots similar to the examples
-        function dual_axis_func!(gl, data; axis_kwargs...)
+        function dual_axis_func!(gl, data; kwargs...)
             # Create primary axis
-            ax1 = Axis(gl[1, 1]; axis_kwargs...)
+            ax1 = Axis(gl[1, 1]; kwargs...)
 
             # Create secondary axis overlaid
-            ax2 = Axis(gl[1, 1]; axis_kwargs...)
+            ax2 = Axis(gl[1, 1]; kwargs...)
 
             # Plot on primary axis
             lines!(
@@ -203,9 +212,9 @@ using GeoFacetMakie
     @testset "Plot Function Execution" begin
         # Test that plot function is called for each region
         plot_calls = String[]
-        function tracking_plot_func!(gl, data; axis_kwargs...)
+        function tracking_plot_func!(gl, data; kwargs...)
             push!(plot_calls, data.state[1])  # Track which state was plotted
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+            ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, [1], data.value)
             return nothing
         end
@@ -223,14 +232,14 @@ using GeoFacetMakie
         )
         @test Tuple(result1.scene.viewport[].widths) == (800, 600)
 
-        # Test axis_kwargs
+        # Test common_axis_kwargs
         result2 = geofacet(
             sample_data, :state, simple_plot_func!;
-            axis_kwargs = (ylabel = "Test Label",)
+            common_axis_kwargs = (ylabel = "Test Label",)
         )
         # Check that the figure was created successfully
         @test isa(result2, Figure)
-        # Note: axis_kwargs are passed to the plot function, so we can't directly test them here
+        # Note: common_axis_kwargs are passed to the plot function, so we can't directly test them here
         # The plot function is responsible for using them when creating axes
     end
 
@@ -252,8 +261,8 @@ using GeoFacetMakie
         @test isa(result4, Figure)
 
         # Test axis linking with multi-axis plots
-        function linked_multi_axis_func!(gl, data; axis_kwargs...)
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        function linked_multi_axis_func!(gl, data; kwargs...)
+            ax = Axis(gl[1, 1]; kwargs...)
             lines!(
                 ax, [1, 2, 3], [data.value[1], data.value[1] * 1.1, data.value[1] * 1.2],
                 color = :steelblue, linewidth = 2
@@ -299,13 +308,13 @@ using GeoFacetMakie
 
         # Test plot function that throws error - should handle gracefully with warnings
         error_count = 0
-        function error_plot_func!(gl, data; axis_kwargs...)
+        function error_plot_func!(gl, data; kwargs...)
             error_count += 1
             if error_count <= 2  # First two calls will error
                 error("Simulated plotting error")
             else
                 # Successful plot for remaining calls
-                ax = Axis(gl[1, 1]; axis_kwargs...)
+                ax = Axis(gl[1, 1]; kwargs...)
                 scatter!(ax, [1], data.value)
                 return nothing
             end
@@ -343,8 +352,8 @@ using GeoFacetMakie
 
     @testset "Different Plot Types" begin
         # Test with different plot functions
-        function bar_plot_func!(gl, data; axis_kwargs...)
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        function bar_plot_func!(gl, data; kwargs...)
+            ax = Axis(gl[1, 1]; kwargs...)
             barplot!(ax, [1], data.value)
             return nothing
         end
@@ -356,8 +365,8 @@ using GeoFacetMakie
         @test isa(result2, Figure)
 
         # Test with multiple series
-        function multi_plot_func!(gl, data; axis_kwargs...)
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        function multi_plot_func!(gl, data; kwargs...)
+            ax = Axis(gl[1, 1]; kwargs...)
             lines!(ax, data.date, data.cases, color = :blue)
             scatter!(ax, data.date, data.cases, color = :red)
             return nothing
@@ -366,12 +375,12 @@ using GeoFacetMakie
         @test isa(result3, Figure)
 
         # Test complex multi-panel layouts (2x2 grid within facets)
-        function complex_layout_func!(gl, data; axis_kwargs...)
+        function complex_layout_func!(gl, data; kwargs...)
             # Create a 2x2 grid of axes within the facet
-            ax1 = Axis(gl[1, 1]; axis_kwargs...)  # Top-left
-            ax2 = Axis(gl[1, 2]; axis_kwargs...)  # Top-right
-            ax3 = Axis(gl[2, 1]; axis_kwargs...)  # Bottom-left
-            ax4 = Axis(gl[2, 2]; axis_kwargs...)  # Bottom-right
+            ax1 = Axis(gl[1, 1]; kwargs...)  # Top-left
+            ax2 = Axis(gl[1, 2]; kwargs...)  # Top-right
+            ax3 = Axis(gl[2, 1]; kwargs...)  # Bottom-left
+            ax4 = Axis(gl[2, 2]; kwargs...)  # Bottom-right
 
             # Plot different visualizations on each axis
             barplot!(ax1, [1], data.value, color = :steelblue)
@@ -400,9 +409,9 @@ using GeoFacetMakie
 
     @testset "GridLayout Axis Collection and Linking" begin
         # Test the internal axis collection functionality
-        function multi_axis_func!(gl, data; axis_kwargs...)
-            ax1 = Axis(gl[1, 1]; axis_kwargs...)
-            ax2 = Axis(gl[2, 1]; axis_kwargs...)
+        function multi_axis_func!(gl, data; kwargs...)
+            ax1 = Axis(gl[1, 1]; kwargs...)
+            ax2 = Axis(gl[2, 1]; kwargs...)
 
             lines!(ax1, [1, 2, 3], [data.value[1], data.value[1] * 1.1, data.value[1] * 1.2])
             lines!(ax2, [1, 2, 3], [data.secondary_value[1], data.secondary_value[1] * 0.9, data.secondary_value[1] * 1.1])
@@ -441,8 +450,8 @@ using GeoFacetMakie
             date = repeat([Date(2023, 1, 1)], 250)
         )
 
-        function performance_func!(gl, data; axis_kwargs...)
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        function performance_func!(gl, data; kwargs...)
+            ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, data.value, data.secondary_value, markersize = 4)
             ax.title = data.state[1]
             return nothing
@@ -508,9 +517,9 @@ using GeoFacetMakie
 
         # Track which axis_kwargs are passed to each region
         received_kwargs = Dict{String, Any}()
-        function kwargs_tracking_plot_func!(gl, data; axis_kwargs...)
-            received_kwargs[data.state[1]] = axis_kwargs
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        function kwargs_tracking_plot_func!(gl, data; kwargs...)
+            received_kwargs[data.state[1]] = kwargs
+            ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, [1], data.value)
             return nothing
         end
@@ -528,10 +537,10 @@ using GeoFacetMakie
         @test haskey(received_kwargs, "D")
 
         # A and B should have x decorations hidden (they have neighbors below)
-        @test received_kwargs["A"] == pairs((xticksvisible = 0, xticklabelsvisible = 0, xlabelvisible = 0))
-        @test received_kwargs["B"] == pairs((xticksvisible = 0, xticklabelsvisible = 0, xlabelvisible = 0))
-        @test received_kwargs["C"] == pairs(())
-        @test received_kwargs["D"] == pairs(())
+        @test received_kwargs["A"] == pairs((xticksvisible = false, xticklabelsvisible = false, xlabelvisible = false))
+        @test received_kwargs["B"] == pairs((xticksvisible = false, xticklabelsvisible = false, xlabelvisible = false))
+        @test received_kwargs["C"] == pairs(NamedTuple())
+        @test received_kwargs["D"] == pairs(NamedTuple())
 
         # Test with y-axis linking - should hide y decorations for regions with neighbors to the left
         empty!(received_kwargs)
@@ -541,10 +550,10 @@ using GeoFacetMakie
         )
 
         # B and D should have y decorations hidden (they have neighbors to the left)
-        @test received_kwargs["A"] == pairs(())
-        @test received_kwargs["B"] == pairs((yticksvisible = 0, yticklabelsvisible = 0, ylabelvisible = 0))
-        @test received_kwargs["C"] == pairs(())
-        @test received_kwargs["D"] == pairs((yticksvisible = 0, yticklabelsvisible = 0, ylabelvisible = 0))
+        @test received_kwargs["A"] == pairs(NamedTuple())
+        @test received_kwargs["B"] == pairs((yticksvisible = false, yticklabelsvisible = false, ylabelvisible = false))
+        @test received_kwargs["C"] == pairs(NamedTuple())
+        @test received_kwargs["D"] == pairs((yticksvisible = false, yticklabelsvisible = false, ylabelvisible = false))
 
 
         # Test with no linking - should not hide any decorations
@@ -555,10 +564,10 @@ using GeoFacetMakie
         )
 
         # No decorations should be hidden when axes are not linked
-        @test received_kwargs["A"] == pairs(())
-        @test received_kwargs["B"] == pairs(())
-        @test received_kwargs["C"] == pairs(())
-        @test received_kwargs["D"] == pairs(())
+        @test received_kwargs["A"] == pairs(NamedTuple())
+        @test received_kwargs["B"] == pairs(NamedTuple())
+        @test received_kwargs["C"] == pairs(NamedTuple())
+        @test received_kwargs["D"] == pairs(NamedTuple())
 
         # Test with both linking
         empty!(received_kwargs)
@@ -569,19 +578,17 @@ using GeoFacetMakie
 
         # A and B should have x decorations hidden (they have neighbors below)
         # B and D should have y decorations hidden (they have neighbors to the left)
-        @test received_kwargs["A"] == pairs((xticksvisible = 0, xticklabelsvisible = 0, xlabelvisible = 0))
-        @test received_kwargs["B"] == pairs(
-            (
-                xticksvisible = 0,
-                xticklabelsvisible = 0,
-                xlabelvisible = 0,
-                yticksvisible = 0,
-                yticklabelsvisible = 0,
-                ylabelvisible = 0,
-            )
-        )
-        @test received_kwargs["C"] == pairs(())
-        @test received_kwargs["D"] == pairs((yticksvisible = 0, yticklabelsvisible = 0, ylabelvisible = 0))
+        @test received_kwargs["A"] == pairs((xticksvisible = false, xticklabelsvisible = false, xlabelvisible = false))
+        @test received_kwargs["B"] == pairs((
+                xticksvisible = false,
+                xticklabelsvisible = false,
+                xlabelvisible = false,
+                yticksvisible = false,
+                yticklabelsvisible = false,
+                ylabelvisible = false,
+            ))
+        @test received_kwargs["C"] == pairs(NamedTuple())
+        @test received_kwargs["D"] == pairs((yticksvisible = false, yticklabelsvisible = false, ylabelvisible = false))
 
         # Test with no inner decoration hiding
         empty!(received_kwargs)
@@ -590,36 +597,49 @@ using GeoFacetMakie
             grid = simple_grid, link_axes = :both, hide_inner_decorations = false
         )
 
-        # No decorations should be hidden when axes are not linked
-        @test received_kwargs["A"] == pairs(())
-        @test received_kwargs["B"] == pairs(())
-        @test received_kwargs["C"] == pairs(())
-        @test received_kwargs["D"] == pairs(())
+        # No decorations should be hidden when hide_inner_decorations = false
+        @test received_kwargs["A"] == pairs(NamedTuple())
+        @test received_kwargs["B"] == pairs(NamedTuple())
+        @test received_kwargs["C"] == pairs(NamedTuple())
+        @test received_kwargs["D"] == pairs(NamedTuple())
     end
 
-    @testset "Multi-Axis Kwargs API" begin
-        # Test new multi-axis kwargs functionality
+    @testset "Single vs Multi-Axis Kwargs API" begin
+        # Test new convenience API for single-axis plots
         test_data = DataFrame(
             state = ["CA", "TX"],
             value1 = [100, 200],
             value2 = [50, 75]
         )
 
-        # Test with common_axis_kwargs only (backward compatible)
-        function single_axis_new_api!(gl, data; processed_axis_kwargs_list)
-            ax = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
+        # Test single-axis with simplified kwargs... syntax
+        function single_axis_simple!(gl, data; kwargs...)
+            ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, [1], data.value1)
             return nothing
         end
 
         result1 = geofacet(
-            test_data, :state, single_axis_new_api!;
-            common_axis_kwargs = (xlabel = "Common X", ylabel = "Common Y")
+            test_data, :state, single_axis_simple!;
+            common_axis_kwargs = (xlabel = "Simple X", ylabel = "Simple Y")
         )
         @test isa(result1, Figure)
 
-        # Test with axis_kwargs_list for multi-axis plots
-        function multi_axis_new_api!(gl, data; processed_axis_kwargs_list)
+        # Test single-axis with explicit processed_axis_kwargs_list (should still work)
+        function single_axis_explicit!(gl, data; processed_axis_kwargs_list)
+            ax = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
+            scatter!(ax, [1], data.value1)
+            return nothing
+        end
+
+        result2 = geofacet(
+            test_data, :state, single_axis_explicit!;
+            common_axis_kwargs = (xlabel = "Explicit X", ylabel = "Explicit Y")
+        )
+        @test isa(result2, Figure)
+
+        # Test multi-axis with axis_kwargs_list (requires processed_axis_kwargs_list)
+        function multi_axis_explicit!(gl, data; processed_axis_kwargs_list)
             ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
             ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[2]...)
 
@@ -628,22 +648,33 @@ using GeoFacetMakie
             return nothing
         end
 
-        result2 = geofacet(
-            test_data, :state, multi_axis_new_api!;
+        result3 = geofacet(
+            test_data, :state, multi_axis_explicit!;
             common_axis_kwargs = (titlesize = 12,),
             axis_kwargs_list = [
                 (xlabel = "Value 1", ylabel = "Count 1"),
                 (xlabel = "Value 2", ylabel = "Count 2", yscale = log10),
             ]
         )
-        @test isa(result2, Figure)
+        @test isa(result3, Figure)
 
-        # Test that decoration hiding works with multi-axis
+        # Test that decoration hiding works with both APIs
         simple_entries = [GridEntry("A", 1, 1), GridEntry("B", 1, 2)]
         simple_grid = StructArrays.StructArray(simple_entries)
 
-        result3 = geofacet(
-            test_data, :state, multi_axis_new_api!;
+        # Single-axis with decoration hiding
+        result4 = geofacet(
+            test_data, :state, single_axis_simple!;
+            grid = simple_grid,
+            common_axis_kwargs = (xlabel = "Test X", ylabel = "Test Y"),
+            link_axes = :y,
+            hide_inner_decorations = true
+        )
+        @test isa(result4, Figure)
+
+        # Multi-axis with decoration hiding
+        result5 = geofacet(
+            test_data, :state, multi_axis_explicit!;
             grid = simple_grid,
             common_axis_kwargs = (titlesize = 12,),
             axis_kwargs_list = [
@@ -653,6 +684,6 @@ using GeoFacetMakie
             link_axes = :y,
             hide_inner_decorations = true
         )
-        @test isa(result3, Figure)
+        @test isa(result5, Figure)
     end
 end

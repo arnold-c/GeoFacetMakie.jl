@@ -219,7 +219,8 @@ println("✅ Single state test successful")
 
 #%%
 geofacet(
-		time_series_data,
+	# Remove OR to confirm that empty states are handled correctly on both axes
+	subset(time_series_data, :state => s -> s .!= "OR"),
 		:state,
 		dual_timeseries_plot!;  # Pass our named function
 		figure_kwargs = (size = (4000, 2500), fontsize = 8),
@@ -237,8 +238,8 @@ geofacet(
              ylabelcolor = :firebrick, yticklabelcolor = :firebrick)
         ],
 		link_axes = :both,  # Link x-axes for time comparison
-		missing_regions = :skip
-	).figure
+		missing_regions = :empty
+	)
 
 #%%
 Create the full geofaceted plot

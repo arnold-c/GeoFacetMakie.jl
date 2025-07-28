@@ -63,8 +63,8 @@ function barplot_fn(data; axis_kwargs...)
     return fig
 end
 
-function barplot_fn!(gl, data; axis_kwargs...)
-    ax = Axis(gl[1, 1]; axis_kwargs...)
+function barplot_fn!(gl, data; kwargs...)
+    ax = Axis(gl[1, 1]; kwargs...)
     barplot!(ax, [1], data.population, color = :steelblue)
     ax.title = data.state[1]  # Set title to state name
     ax.xticksvisible = false # Remove x-axis ticks for cleaner look
@@ -79,14 +79,14 @@ barplot_fn(
 )
 
 #%%
-# FIX: Doesn't plot the y axis label
+# Now works with new API
 geofacet(
     sample_data,
     :state,
     barplot_fn!;
     link_axes = :both,
     figure_kwargs = (size = (1200, 800),),
-    axis_kwargs = (titlesize = 14, ylabel = "Population (M)"),
+    common_axis_kwargs = (titlesize = 14, ylabel = "Population (M)"),
     # hide_inner_decorations = false
 )
 
@@ -98,17 +98,15 @@ try
         barplot_fn!;
         link_axes = :both,
         figure_kwargs = (size = (1200, 800),),
-        axis_kwargs = (titlesize = 14, ylabel = "Population (M)"),
+        common_axis_kwargs = (titlesize = 14, ylabel = "Population (M)"),
         hide_inner_decorations = false
     )
 
     println("✅ Successfully created population bar plot")
-    println("   - Figure size: $(result1.figure.scene.viewport[].widths)")
-    println("   - Number of axes: $(length(result1.axes))")
-    println("   - States plotted: $(sort(collect(keys(result1.data_mapping))))")
+    println("   - Figure size: $(result1.scene.viewport[].widths)")
 
     # Save the plot
-    save("examples/population_bars.png", result1.figure)
+    save("examples/population_bars.png", result1)
     println("   - Saved as: examples/population_bars.png")
 
 catch e
@@ -123,8 +121,8 @@ println("-"^65)
 try
     result2 = geofacet(
         sample_data, :state,
-        (gl, data; axis_kwargs...) -> begin
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        (gl, data; kwargs...) -> begin
+            ax = Axis(gl[1, 1]; kwargs...)
             scatter!(
                 ax, data.gdp_per_capita, data.unemployment_rate,
                 color = :coral, markersize = 12
@@ -133,7 +131,7 @@ try
         end,
         link_axes = :both,  # Link both x and y axes
         figure_kwargs = (size = (1800, 1200),),
-        axis_kwargs = (
+        common_axis_kwargs = (
             titlesize = 12,
             xlabel = "GDP per capita (\$)",
             ylabel = "Unemployment (%)",
@@ -149,7 +147,7 @@ try
     println("   - This allows easy comparison across states")
 
     # Save the plot
-    save("examples/gdp_unemployment_scatter.png", result2.figure)
+    save("examples/gdp_unemployment_scatter.png", result2)
     println("   - Saved as: examples/gdp_unemployment_scatter.png")
 
 catch e
@@ -184,8 +182,8 @@ try
 
     result3 = geofacet(
         time_series_data, :state,
-        (gl, data; axis_kwargs...) -> begin
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        (gl, data; kwargs...) -> begin
+            ax = Axis(gl[1, 1]; kwargs...)
             lines!(
                 ax, data.year, data.population,
                 color = :darkgreen, linewidth = 2
@@ -194,7 +192,7 @@ try
         end,
         link_axes = :y,  # Link y-axes for comparison
         figure_kwargs = (size = (1200, 800),),
-        axis_kwargs = (
+        common_axis_kwargs = (
             titlesize = 14,
             xlabel = "Year",
             ylabel = "Population (M)",
@@ -206,11 +204,11 @@ try
     )
 
     println("✅ Successfully created time series plot")
-    println("   - Years: $(minimum(time_data.year)) - $(maximum(time_data.year))")
+    println("   - Years: $(minimum(time_series_data.year)) - $(maximum(time_series_data.year))")
     println("   - Y-axes linked for easy comparison")
 
     # Save the plot
-    save("examples/population_timeseries.png", result3.figure)
+    save("examples/population_timeseries.png", result3)
     println("   - Saved as: examples/population_timeseries.png")
 
 catch e
@@ -232,20 +230,19 @@ try
     # This should handle missing regions gracefully
     result4 = geofacet(
         error_data, :state,
-        (gl, data; axis_kwargs...) -> begin
-            ax = Axis(gl[1, 1]; axis_kwargs...)
+        (gl, data; kwargs...) -> begin
+            ax = Axis(gl[1, 1]; kwargs...)
             barplot!(ax, [1], data.value, color = :orange)
             ax.title = data.state[1]
         end,
         missing_regions = :skip  # Skip regions not in grid
     )
 
-    save("examples/error-handling_barplot.png", result4.figure)
+    save("examples/error-handling_barplot.png", result4)
     println("   - Saved as: examples/error-handling_barplot.png")
 
     println("✅ Successfully handled missing regions")
     println("   - Invalid states were skipped gracefully")
-    println("   - Valid states plotted: $(sort(collect(keys(result4.data_mapping))))")
 
 catch e
     println("❌ Error in Example 4: $e")

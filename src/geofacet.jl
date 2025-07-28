@@ -102,7 +102,8 @@ Create a geographically faceted plot using the specified grid layout.
 # Arguments
 - `data`: DataFrame or similar tabular data structure
 - `region_col`: Symbol or string specifying the column containing region identifiers
-- `plot_func`: Function that takes `(gridlayout, data_subset; processed_axis_kwargs_list)` and creates plots
+- `plot_func`: Function that takes `(gridlayout, data_subset; kwargs...)` for single-axis plots or
+  `(gridlayout, data_subset; processed_axis_kwargs_list)` for multi-axis plots
 
 # Keyword Arguments
 - `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid`)
@@ -121,11 +122,7 @@ Create a geographically faceted plot using the specified grid layout.
   only x-axis decorations are hidden for facets with neighbors below.
 
 # Returns
-A NamedTuple with:
-- `figure`: The Makie Figure object
-- `axes`: Dict mapping region codes to Axis objects
-- `grid_layout`: The GridLayout object
-- `data_mapping`: Dict showing which regions got data
+A Makie Figure object containing the geofaceted plot.
 
 # Example
 ```julia
@@ -138,11 +135,13 @@ data = DataFrame(
     gdp = [3_200_000, 2_400_000, 1_900_000]
 )
 
-# Single-axis plot (backward compatible)
-result = geofacet(data, :state, (layout, data; processed_axis_kwargs_list) -> begin
-    ax = Axis(layout[1, 1]; processed_axis_kwargs_list[1]...)
+# Single-axis plot (simplified syntax)
+result = geofacet(data, :state, (layout, data; kwargs...) -> begin
+    ax = Axis(layout[1, 1]; kwargs...)
     barplot!(ax, [1], data.population)
-end; common_axis_kwargs = (xlabel = "Index", ylabel = "Population"))
+end;
+    common_axis_kwargs = (xlabel = "Index", ylabel = "Population")
+)
 
 # Multi-axis plot with common and per-axis kwargs
 result = geofacet(data, :state, (layout, data; processed_axis_kwargs_list) -> begin
@@ -170,8 +169,6 @@ function geofacet(
         link_axes = :none,
         missing_regions = :skip,
         hide_inner_decorations = true,
-        # Backward compatibility
-        axis_kwargs = NamedTuple[],
         kwargs...
     )
 
@@ -257,7 +254,7 @@ function geofacet(
         gl = GridLayout(grid_layout[row, col])
         created_gridlayouts[region_code] = gl
 
-        # For backward compatibility, if axis_kwargs_list is empty, use a single axis
+        # Use number of axes from axis_kwargs_list, default to 1 if empty
         num_axes = isempty(axis_kwargs_list) ? 1 : length(axis_kwargs_list)
 
         # Calculate per-axis decoration hiding kwargs based on neighbor detection and axis linking
@@ -325,10 +322,19 @@ function geofacet(
 
             # Execute plot function with error handling
             try
-                # For backward compatibility, if axis_kwargs_list is empty, pass the first kwargs as axis_kwargs
-                # FIX: Should pass first item of list if axis_kwargs passed
-                if isempty(axis_kwargs_list)
-                    plot_func(gl, region_data; processed_axis_kwargs_list[1]...)
+                # For convenience: if only one set of kwargs, try passing them directly first
+                # This allows simpler function signatures for single-axis plots
+                if length(processed_axis_kwargs_list) == 1
+                    try
+                        plot_func(gl, region_data; processed_axis_kwargs_list[1]...)
+                    catch e
+                        # If that fails, try the explicit API (for backwards compatibility)
+                        if e isa UndefKeywordError && e.var == :processed_axis_kwargs_list
+                            plot_func(gl, region_data; processed_axis_kwargs_list = processed_axis_kwargs_list)
+                        else
+                            rethrow(e)
+                        end
+                    end
                 else
                     plot_func(gl, region_data; processed_axis_kwargs_list = processed_axis_kwargs_list)
                 end
@@ -339,7 +345,11 @@ function geofacet(
         elseif missing_regions == :empty
             # No data for this region
             # Create empty axis with region label
-            ax = Axis(gl[1, 1]; title = region_code, processed_axis_kwargs_list[1]...)
+            # Need to pass all items in processed_axis_kwargs_list to Axis to
+            # Correctly handle hiding decorations for empty facets
+            for processed_axis_kwargs in processed_axis_kwargs_list
+                ax = Axis(gl[1, 1]; title = region_code, processed_axis_kwargs...)
+            end
         elseif missing_regions == :skip
             continue
         end
