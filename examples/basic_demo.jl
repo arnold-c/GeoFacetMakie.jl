@@ -13,8 +13,11 @@ Run this script from the package root directory:
 #%%
 using GeoFacetMakie
 using DataFrames
-using GLMakie  # Use CairoMakie for static plots
 using Random
+
+# Choose your preferred Makie backend:
+using GLMakie  # For interactive plots
+# using CairoMakie  # For static plots (uncomment this line and comment GLMakie above)
 
 #%%
 # Set random seed for reproducible results

@@ -106,9 +106,14 @@ julia --project examples/full_states_timeseries.jl
 
 ## Requirements
 
-- Julia 1.9+
+- Julia 1.10+
 - GeoFacetMakie.jl
 - DataFrames.jl
-- CairoMakie.jl (for static plots) or GLMakie.jl (for interactive plots)
+- **Makie Backend**: You must choose and install one:
+  - `CairoMakie.jl` (for static plots)
+  - `GLMakie.jl` (for interactive plots)
+  - `WGLMakie.jl` (for web-based plots)
+
+**Note**: GeoFacetMakie.jl does not include a Makie backend by default. You must install and load your preferred backend before running the examples.
 
 Happy plotting! 🗺️📊
