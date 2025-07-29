@@ -5,33 +5,7 @@ Main geofacet plotting functionality for GeoFacetMakie.jl
 using DataFrames
 using Makie
 
-export geofacet, us_state_grid
-
-"""
-    us_state_grid
-
-Predefined US state grid layout (includes Washington DC).
-
-This is the standard US state grid layout from the geofacet R package,
-providing a geographical arrangement of all 50 US states plus DC.
-
-# Example
-```julia
-using GeoFacetMakie
-
-# Use the predefined US state grid
-geofacet(data, :state, plot_function; grid = us_state_grid)
-```
-"""
-const us_state_grid = let
-    try
-        load_grid_from_csv("us_state_grid1")
-    catch e
-        @warn "Could not load us_state_grid: $e"
-        # Fallback to empty grid if loading fails
-        GeoGrid("us_state_grid1_fallback", Dict{String, Tuple{Int, Int}}())
-    end
-end
+export geofacet
 
 """
     geofacet(data, region_col, plot_func;
@@ -56,7 +30,7 @@ Create a geographically faceted plot using the specified grid layout.
   `(gridlayout, data_subset; processed_axis_kwargs_list)` for multi-axis plots
 
 # Keyword Arguments
-- `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid`)
+- `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid1`)
 - `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
 - `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
 - `hide_inner_decorations`: Bool controlling whether to hide axis decorations on inner facets
@@ -124,7 +98,7 @@ function geofacet(
         data::D,
         region_col::R,
         plot_func;
-        grid = us_state_grid,
+        grid = us_state_grid1,
         link_axes = :none,
         missing_regions = :skip,
         hide_inner_decorations = true,

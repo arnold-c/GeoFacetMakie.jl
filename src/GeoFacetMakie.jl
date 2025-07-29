@@ -43,4 +43,7 @@ include("plotting/data_processing.jl")
 include("plotting/axis_management.jl")
 include("plotting/geofacet_core.jl")
 
+# Include predefined grids
+include("data/predefined_grids.jl")
+
 end # module

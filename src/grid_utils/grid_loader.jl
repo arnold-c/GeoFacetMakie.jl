@@ -6,7 +6,7 @@ particularly those from the geofacet R package ecosystem.
 """
 
 # Export functions
-export load_grid_from_csv, list_available_grids, load_grid
+export load_grid_from_csv, list_available_grids
 
 using CSV
 using DataFrames
@@ -141,7 +141,6 @@ function load_grid_from_csv(filename::String)
     grids_dir = joinpath(@__DIR__, "..", "data", "grids")
     return load_grid_from_csv(filename, grids_dir)
 end
-
 
 """
     list_available_grids() -> Vector{String}

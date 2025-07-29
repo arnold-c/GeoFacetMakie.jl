@@ -59,7 +59,7 @@ using GeoFacetMakie
         @testset "us_state_grid variants" begin
             for version in 1:3
                 grid_name = "us_state_grid$version"
-                grid = load_grid(grid_name)
+                grid = load_grid_from_csv(grid_name)
                 @test isa(grid, GeoGrid)
 
                 # Should have 50 states + DC = 51 regions
@@ -78,7 +78,7 @@ using GeoFacetMakie
         @testset "us_state_without_DC_grid variants" begin
             for version in 1:3
                 grid_name = "us_state_without_DC_grid$version"
-                grid = load_grid(grid_name)
+                grid = load_grid_from_csv(grid_name)
                 @test isa(grid, GeoGrid)
 
                 # Should have 50 states (no DC)
@@ -95,7 +95,7 @@ using GeoFacetMakie
         end
 
         @testset "us_state_contiguous_grid" begin
-            grid = load_grid("us_state_contiguous_grid1")
+            grid = load_grid_from_csv("us_state_contiguous_grid1")
             @test isa(grid, GeoGrid)
 
             # Should have 48 contiguous states + DC = 49 regions
@@ -140,13 +140,13 @@ using GeoFacetMakie
 
     @testset "load_grid" begin
         @testset "Valid grid names" begin
-            grid = load_grid("us_state_grid1")
+            grid = load_grid_from_csv("us_state_grid1")
             @test isa(grid, GeoGrid)
             @test length(grid) == 51  # 50 states + DC
         end
 
         @testset "Invalid grid names" begin
-            @test_throws ArgumentError load_grid("nonexistent_grid")
+            @test_throws ArgumentError load_grid_from_csv("nonexistent_grid")
         end
     end
 
@@ -165,7 +165,7 @@ using GeoFacetMakie
             ]
 
             for grid_name in sample_grids
-                grid = load_grid(grid_name)
+                grid = load_grid_from_csv(grid_name)
 
                 # Basic structure tests
                 @test isa(grid, GeoGrid)
@@ -185,14 +185,14 @@ using GeoFacetMakie
         end
     end
 
-    @testset "us_state_grid constant" begin
-        @test isa(us_state_grid, GeoGrid)
-        @test length(us_state_grid) == 51  # 50 states + DC
+    @testset "us_state_grid1 constant" begin
+        @test isa(us_state_grid1, GeoGrid)
+        @test length(us_state_grid1) == 51  # 50 states + DC
 
         # Check some known states
-        @test "CA" in us_state_grid.region
-        @test "TX" in us_state_grid.region
-        @test "DC" in us_state_grid.region
+        @test "CA" in us_state_grid1.region
+        @test "TX" in us_state_grid1.region
+        @test "DC" in us_state_grid1.region
     end
 
 end
