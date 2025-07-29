@@ -1,3 +1,7 @@
+"""
+Tests for main geofacet plotting functionality
+"""
+
 using Test
 using DataFrames
 using Dates

@@ -1,5 +1,5 @@
 """
-Tests for GeoGrid validation and error handling
+Tests for GeoGrid constructors, validation, and error handling
 """
 
 using Test

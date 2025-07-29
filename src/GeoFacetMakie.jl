@@ -30,10 +30,17 @@ using StructArrays
 # Re-export StructArrays for test convenience
 export StructArrays
 
-# Include submodules
-include("structs.jl")
-include("grid_operations.jl")
-include("grid_loader.jl")
-include("geofacet.jl")
+# Include type definitions
+include("types/grid_entry.jl")
+include("types/geo_grid.jl")
+
+# Include core functionality
+include("grid_utils/grid_operations.jl")
+include("grid_utils/grid_loader.jl")
+
+# Include plotting functionality
+include("plotting/data_processing.jl")
+include("plotting/axis_management.jl")
+include("plotting/geofacet_core.jl")
 
 end # module

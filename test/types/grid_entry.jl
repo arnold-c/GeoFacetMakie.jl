@@ -1,5 +1,5 @@
 """
-Tests for GeoGrid construction and basic field access
+Tests for GridEntry struct construction, iteration, and basic functionality
 """
 
 using Test

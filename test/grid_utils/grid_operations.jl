@@ -37,7 +37,7 @@ end
     entries = [
         GridEntry("A", 1, 1), GridEntry("B", 1, 2), GridEntry("C", 1, 3),
         GridEntry("D", 2, 1), GridEntry("F", 2, 3),
-        GridEntry("G", 3, 1), GridEntry("H", 3, 2), GridEntry("I", 3, 3)
+        GridEntry("G", 3, 1), GridEntry("H", 3, 2), GridEntry("I", 3, 3),
     ]
     grid = StructArrays.StructArray(entries)
 
@@ -90,4 +90,3 @@ end
     @test has_neighbor_right(grid, "CA") isa Bool
     @test has_neighbor_above(grid, "CA") isa Bool
 end
-

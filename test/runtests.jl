@@ -4,14 +4,22 @@ using DataFrames
 using Makie
 
 @testset "GeoFacetMakie.jl" begin
-    # Include all test files
+    # Package loading tests
     include("package_loading.jl")
-    include("geogrid_construction.jl")
-    include("geogrid_validation.jl")
-    include("geogrid_querying.jl")
+    
+    # Type definition tests
+    include("types/grid_entry.jl")
+    include("types/geo_grid.jl")
+    
+    # Grid utilities tests
+    include("grid_utils/grid_operations.jl")
+    include("grid_utils/grid_loader.jl")
+    
+    # Grid edge cases tests
     include("geogrid_edge_cases.jl")
-    include("grid_loading.jl")
-    include("geofacet.jl")
+    
+    # Plotting functionality tests
+    include("plotting/geofacet_core.jl")
 end
 
 using JET
