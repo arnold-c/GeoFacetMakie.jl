@@ -25,7 +25,7 @@ geofacet(data, :state, plot_function; grid = us_state_grid)
 """
 const us_state_grid = let
     try
-        load_us_state_grid(1)
+        load_grid_from_csv("us_state_grid1")
     catch e
         @warn "Could not load us_state_grid: $e"
         # Fallback to empty grid if loading fails
@@ -372,7 +372,7 @@ function geofacet(
 
         # Check if any axes have labeled plots
         has_labeled_plots = _has_labeled_plots(fig)
-        
+
         if has_labeled_plots
             Legend(grid_layout[legend_row, legend_col], fig.content[1], legend_title; legend_kwargs_dict...)
 
@@ -391,3 +391,4 @@ function geofacet(
 
     return fig
 end
+

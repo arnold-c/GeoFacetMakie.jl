@@ -71,3 +71,4 @@ function _has_labeled_plots(fig::Figure)
     end
     return false
 end
+

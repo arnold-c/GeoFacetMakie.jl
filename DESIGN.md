@@ -261,7 +261,7 @@ us_no_dc = load_us_state_grid_without_dc(1)
 contiguous = load_us_contiguous_grid()
 
 # Load any grid by name
-grid = load_grid("us_state_grid2")
+grid = load_grid_from_csv("us_state_grid2")
 
 # Load custom grid from CSV
 custom_grid = load_grid_from_csv("path/to/custom.csv")

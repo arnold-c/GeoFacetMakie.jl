@@ -203,12 +203,12 @@ using GeoFacetMakie
         @test isa(result1, Figure)
 
         # Test with custom grid
-        custom_grid = load_us_state_grid(2)
+        custom_grid = load_grid_from_csv("us_state_grid2")
         result2 = geofacet(sample_data, :state, simple_plot_func!; grid = custom_grid)
         @test isa(result2, Figure)
 
         # Test with contiguous grid
-        contiguous_grid = load_us_contiguous_grid()
+        contiguous_grid = load_grid_from_csv("us_state_contiguous_grid1")
         result3 = geofacet(sample_data, :state, simple_plot_func!; grid = contiguous_grid)
         @test isa(result3, Figure)
     end
@@ -469,11 +469,11 @@ using GeoFacetMakie
     @testset "Integration with Existing Grid System" begin
         # Test that geofacet works with all available grids
         grids_to_test = [
-            load_us_state_grid(1),
-            load_us_state_grid(2),
-            load_us_state_grid(3),
-            load_us_state_grid_without_dc(1),
-            load_us_contiguous_grid(),
+            load_grid_from_csv("us_state_grid1"),
+            load_grid_from_csv("us_state_grid2"),
+            load_grid_from_csv("us_state_grid3"),
+            load_grid_from_csv("us_state_without_DC_grid1"),
+            load_grid_from_csv("us_state_contiguous_grid1"),
         ]
 
         for grid in grids_to_test
@@ -720,7 +720,7 @@ using GeoFacetMakie
         )
 
         # Get expected grid dimensions
-        grid = load_us_state_grid(1)  # or whatever default grid is used
+        grid = load_grid_from_csv("us_state_grid1")  # or whatever default grid is used
         expected_regions = length(unique(test_data.state))
 
         @testset "No Legend When legend_kwargs Empty" begin

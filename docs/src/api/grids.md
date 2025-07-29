@@ -37,7 +37,7 @@ grid = DataFrame(
 GeoFacetMakie.jl includes several pre-defined US state grids:
 
 #### Available US State Grids
-Several US state grid layouts are available through the `load_grid()` function:
+Several US state grid layouts are available through the `load_grid_from_csv()` function:
 
 - `us_state_grid1`: Standard US state layout with Alaska and Hawaii positioned in the lower left
 - `us_state_grid2`: Alternative arrangement with different positioning for western states
@@ -46,7 +46,7 @@ Several US state grid layouts are available through the `load_grid()` function:
 
 ```julia
 using GeoFacetMakie
-grid = load_grid("us_state_grid1")
+grid = load_grid_from_csv("us_state_grid1")
 ```
 
 ### Grid Comparison
@@ -64,24 +64,19 @@ grid = load_grid("us_state_grid1")
 
 ```@docs
 list_available_grids
-us_state_grid
-load_us_state_grid
-load_grid
 load_grid_from_csv
-load_us_contiguous_grid
-load_us_state_grid_without_dc
 ```
 
-#### `load_grid(name::String)`
+#### `load_grid_from_csv(name::String)`
 
 Load a built-in grid by name.
 
 ```julia
 # Load default US state grid
-grid = load_grid("us_state_grid1")
+grid = load_grid_from_csv("us_state_grid1")
 
 # Load contiguous states only
-grid = load_grid("us_state_contiguous_grid1")
+grid = load_grid_from_csv("us_state_contiguous_grid1")
 ```
 
 #### `list_available_grids()`
