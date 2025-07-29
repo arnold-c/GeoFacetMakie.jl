@@ -2,52 +2,86 @@
 
 This page documents functions and utilities for working with geographic grids in GeoFacetMakie.jl.
 
+## Grid Loading Functions
+
+```@docs
+load_grid_from_csv
+list_available_grids
+```
+
+## Grid Utility Functions
+
+```@docs
+grid_dimensions
+validate_grid
+has_region
+get_position
+get_region_at
+get_regions
+is_complete_rectangle
+```
+
+## Neighbor Detection Functions
+
+```@docs
+has_neighbor_below
+has_neighbor_left
+has_neighbor_right
+has_neighbor_above
+```
+
+## Predefined Grids
+
+```@docs
+get_predefined_grids_count
+```
+
 ## Grid Structure
 
 ### Grid Format
 
-Geographic grids are DataFrames with a specific structure:
+Geographic grids are StructArrays with a specific structure:
 
 ```julia
-grid = DataFrame(
-    code = ["CA", "TX", "NY"],     # Required: Region identifiers
-    row = [2, 3, 1],               # Required: Grid row positions
-    col = [1, 2, 3],               # Required: Grid column positions
-    name = ["California", "Texas", "New York"]  # Optional: Full names
+# Create a simple grid
+grid = GeoGrid(
+    ["CA", "TX", "NY"],     # Region identifiers
+    [2, 3, 1],              # Grid row positions
+    [1, 2, 3]               # Grid column positions
 )
 ```
 
-### Required Columns
+### Required Fields
 
-- **`code`**: Unique identifiers for geographic regions (String)
+- **`region`**: Unique identifiers for geographic regions (String)
 - **`row`**: Grid row positions, starting from 1 (Integer)
 - **`col`**: Grid column positions, starting from 1 (Integer)
-
-### Optional Columns
-
-- **`name`**: Full region names for display
-- **`region`**: Higher-level groupings (e.g., "West", "South")
-- **`population`**, **`area`**: Metadata for reference
-- Any other descriptive columns
+- **`name`**: Display names for regions (String, defaults to region)
+- **`metadata`**: Additional metadata (Dict{String,Any})
 
 ## Built-in Grids
 
-### US State Grids
+### Available Grids
 
-GeoFacetMakie.jl includes several pre-defined US state grids:
+GeoFacetMakie.jl includes many pre-defined grids from the geofacet collection:
 
-#### Available US State Grids
-Several US state grid layouts are available through the `load_grid_from_csv()` function:
+```julia
+# List all available grids
+available = list_available_grids()
+println("Available grids: ", join(available[1:5], ", "), "...")
+
+# Load a specific grid
+grid = load_grid_from_csv("us_state_grid1")
+```
+
+### Common US State Grids
+
+Several US state grid layouts are commonly used:
 
 - `us_state_grid1`: Standard US state layout with Alaska and Hawaii positioned in the lower left
 - `us_state_grid2`: Alternative arrangement with different positioning for western states
 - `us_state_grid3`: Compact layout optimizing for space efficiency
 - `us_state_contiguous_grid1`: Contiguous US states only (excludes Alaska and Hawaii)
-
-```julia
-using GeoFacetMakie
-grid = load_grid_from_csv("us_state_grid1")
-```
 
 ### Grid Comparison
 
@@ -58,110 +92,54 @@ grid = load_grid_from_csv("us_state_grid1")
 | `us_state_grid3` | 50 + DC | Compact | Square | Small figures |
 | `us_state_contiguous_grid1` | 48 | Excluded | Wide | Continental focus |
 
-## Grid Functions
-
-### Loading Grids
-
-```@docs
-list_available_grids
-load_grid_from_csv
-```
-
-#### `load_grid_from_csv(name::String)`
-
-Load a built-in grid by name.
-
-```julia
-# Load default US state grid
-grid = load_grid_from_csv("us_state_grid1")
-
-# Load contiguous states only
-grid = load_grid_from_csv("us_state_contiguous_grid1")
-```
-
-#### `list_available_grids()`
-
-Get a list of all available built-in grids.
-
-```julia
-available = list_available_grids()
-println("Available grids: ", join(available, ", "))
-```
-
 ## Creating Custom Grids
 
 ### Basic Custom Grid
 
 ```julia
-# Simple custom grid
-my_grid = DataFrame(
-    code = ["A", "B", "C", "D"],
-    row = [1, 1, 2, 2],
-    col = [1, 2, 1, 2]
+# Simple custom grid using GeoGrid constructor
+my_grid = GeoGrid(
+    ["A", "B", "C", "D"],
+    [1, 1, 2, 2],
+    [1, 2, 1, 2]
 )
 ```
 
 ### Geographic Custom Grid
 
 ```julia
-# European countries grid
-europe_grid = DataFrame(
-    code = ["UK", "FR", "DE", "IT", "ES"],
-    name = ["United Kingdom", "France", "Germany", "Italy", "Spain"],
-    row = [1, 2, 2, 3, 3],
-    col = [1, 1, 2, 2, 1]
+# European countries grid with names
+europe_grid = GeoGrid(
+    ["UK", "FR", "DE", "IT", "ES"],
+    [1, 2, 2, 3, 3],
+    [1, 1, 2, 2, 1],
+    ["United Kingdom", "France", "Germany", "Italy", "Spain"]
 )
 ```
 
 ### Programmatic Grid Generation
 
 ```julia
-function create_rectangular_grid(regions::Vector, ncols::Int)
+function create_rectangular_grid(regions::Vector{String}, ncols::Int)
     nrows = ceil(Int, length(regions) / ncols)
-
-    grid = DataFrame(
-        code = String[],
-        row = Int[],
-        col = Int[]
-    )
-
+    
+    rows = Int[]
+    cols = Int[]
+    
     for (i, region) in enumerate(regions)
         row = ceil(Int, i / ncols)
         col = mod1(i, ncols)
-        push!(grid, (code=region, row=row, col=col))
+        push!(rows, row)
+        push!(cols, col)
     end
-
-    return grid
+    
+    return GeoGrid(regions, rows, cols)
 end
 
 # Generate 3-column grid for any regions
 regions = ["R1", "R2", "R3", "R4", "R5"]
 auto_grid = create_rectangular_grid(regions, 3)
 ```
-
-## Grid Utilities
-
-### Grid Information
-
-```@docs
-grid_dimensions
-is_complete_rectangle
-get_regions
-has_region
-get_region_at
-get_position
-```
-
-#### `grid_dimensions(grid::DataFrame)`
-
-Get the dimensions of a grid.
-
-```julia
-dims = grid_dimensions(grid)
-println("Grid is $(dims.rows) × $(dims.cols)")
-```
-
-Additional grid utility functions are planned for future versions.
 
 
 ## Grid Design Principles
@@ -172,17 +150,17 @@ Balance between maintaining geographic relationships and creating readable layou
 
 ```julia
 # Geographically accurate (may be hard to read)
-accurate_grid = DataFrame(
-    code = ["FL", "GA", "SC", "NC"],
-    row = [4, 3, 2, 1],  # True north-south order
-    col = [1, 1, 1, 1]   # All in same column
+accurate_grid = GeoGrid(
+    ["FL", "GA", "SC", "NC"],
+    [4, 3, 2, 1],  # True north-south order
+    [1, 1, 1, 1]   # All in same column
 )
 
 # Readable compromise (sacrifices some accuracy)
-readable_grid = DataFrame(
-    code = ["FL", "GA", "SC", "NC"],
-    row = [2, 2, 1, 1],  # Compressed vertically
-    col = [1, 2, 1, 2]   # Spread horizontally
+readable_grid = GeoGrid(
+    ["FL", "GA", "SC", "NC"],
+    [2, 2, 1, 1],  # Compressed vertically
+    [1, 2, 1, 2]   # Spread horizontally
 )
 ```
 
@@ -192,10 +170,10 @@ readable_grid = DataFrame(
 
 ```julia
 # Grid with gaps for irregular shapes
-irregular_grid = DataFrame(
-    code = ["AK", "HI", "CA", "OR", "WA"],
-    row = [1, 4, 3, 2, 1],     # Alaska and Hawaii separate
-    col = [1, 1, 2, 2, 2]      # Gaps in layout
+irregular_grid = GeoGrid(
+    ["AK", "HI", "CA", "OR", "WA"],
+    [1, 4, 3, 2, 1],     # Alaska and Hawaii separate
+    [1, 1, 2, 2, 2]      # Gaps in layout
 )
 ```
 
@@ -204,15 +182,14 @@ irregular_grid = DataFrame(
 ### Saving and Loading
 
 ```julia
-# Save custom grid
-using CSV
-CSV.write("my_custom_grid.csv", my_grid)
+# Load from package grids
+grid = load_grid_from_csv("us_state_grid1")
 
-# Load custom grid
-loaded_grid = CSV.read("my_custom_grid.csv", DataFrame)
+# Load from custom directory
+custom_grid = load_grid_from_csv("my_grid.csv", "/path/to/grids")
 
 # Validate after loading
-issues = validate_grid(loaded_grid)
+validate_grid(grid)  # Returns true if valid, throws error if conflicts
 ```
 
 ### Grid Formats
@@ -225,18 +202,11 @@ OR,Oregon,2,1
 WA,Washington,1,1
 ```
 
-#### JSON Format (for complex grids)
-```json
-{
-  "name": "West Coast Grid",
-  "description": "Pacific coast states",
-  "regions": [
-    {"code": "CA", "name": "California", "row": 3, "col": 1},
-    {"code": "OR", "name": "Oregon", "row": 2, "col": 1},
-    {"code": "WA", "name": "Washington", "row": 1, "col": 1}
-  ]
-}
-```
+The CSV loader supports various column name conventions:
+- `code`, `code_alpha3`, `code_country`, `code_iso_3166_2` for region identifiers
+- `name` for display names (optional)
+- `row`, `col` for positions (required)
+- Additional columns become metadata
 
 ## Troubleshooting Grids
 
@@ -245,25 +215,31 @@ WA,Washington,1,1
 **Duplicate positions:**
 ```julia
 # Problem: Two regions at same position
-# Solution: Check for duplicates
-positions = [(r, c) for (r, c) in zip(grid.row, grid.col)]
-duplicates = findall(x -> count(==(x), positions) > 1, positions)
+# Solution: Use validate_grid to check
+try
+    validate_grid(grid)
+    println("Grid is valid")
+catch e
+    println("Grid validation failed: ", e)
+end
 ```
 
 **Missing regions:**
 ```julia
 # Problem: Data regions not in grid
-# Solution: Use subset_grid or add missing regions
+# Solution: Check which regions are available
 data_regions = unique(data.state)
-grid_regions = grid.code
+grid_regions = get_regions(grid)
 missing = setdiff(data_regions, grid_regions)
+println("Missing regions: ", missing)
 ```
 
 **Sparse grids:**
 ```julia
 # Problem: Grid has many empty spaces
-# Solution: Optimize layout or use different arrangement
-density = length(grid.code) / (maximum(grid.row) * maximum(grid.col))
+# Solution: Check grid density
+max_row, max_col = grid_dimensions(grid)
+density = length(grid) / (max_row * max_col)
 if density < 0.3
     @warn "Grid is very sparse ($(round(density*100))% filled)"
 end
@@ -288,7 +264,5 @@ Prioritize readability over perfect geographic accuracy.
 
 ## See Also
 
-# - [Custom Grids Tutorial](../examples/custom_grids.md) - Step-by-step grid creation
 - [Core Functions](core.md) - Main GeoFacetMakie functions
-# - [Basic Usage](../tutorials/basic_usage.md) - Using grids with data
-# - [Examples Gallery](../examples/gallery.md) - Grids in action
+- [Utilities](utilities.md) - Helper functions and utilities

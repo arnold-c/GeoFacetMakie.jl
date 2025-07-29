@@ -1,94 +1,87 @@
 # Core Functions
 
-This page documents the main functions and types in GeoFacetMakie.jl.
+This page documents the main functions and types for creating geofaceted visualizations with GeoFacetMakie.jl.
 
-## Main Functions
-
-### `geofacet`
+## Main Plotting Function
 
 ```@docs
-GeoFacetMakie
 geofacet
 ```
 
-The primary function for creating geofaceted visualizations. This function takes your data, groups it by a geographic identifier, and creates a grid of plots arranged according to geographic relationships.
+## Core Data Types
 
-#### Basic Usage
+### GeoGrid
 
-```julia
-geofacet(data, grouping_column, plotting_function; options...)
-```
-
-#### Parameters
-
-**Required:**
-- `data`: DataFrame or similar tabular data structure
-- `grouping_column`: Symbol or string specifying the column containing geographic identifiers
-- `plotting_function`: Function that creates plots for each geographic region
-
-**Optional Keyword Arguments:**
-- `grid`: Custom geographic grid (DataFrame with `code`, `row`, `col` columns)
-- `figure_kwargs`: Named tuple of arguments passed to `Figure()`
-- `common_axis_kwargs`: Named tuple of arguments applied to all axes
-- `axis_kwargs_list`: Vector of named tuples for multi-axis plots
-- `link_axes`: Symbol specifying axis linking (`:x`, `:y`, `:both`, `:none`)
-- `missing_regions`: Symbol specifying how to handle missing regions (`:skip`, `:empty`, `:error`)
-
-#### Examples
-
-**Basic bar chart:**
-```julia
-geofacet(data, :state, plot_function!;
-         figure_kwargs = (size = (800, 600),),
-         common_axis_kwargs = (ylabel = "Population",))
-```
-
-**Time series with linked x-axes:**
-```julia
-geofacet(timeseries_data, :state, timeseries_plot!;
-         link_axes = :x,
-         common_axis_kwargs = (xlabel = "Year", ylabel = "Value"))
-```
-
-**Dual-axis plot:**
-```julia
-geofacet(data, :state, dual_axis_plot!;
-         axis_kwargs_list = [
-             (ylabel = "Population", ylabelcolor = :blue),
-             (yaxisposition = :right, ylabel = "GDP", ylabelcolor = :red)
-         ])
-```
-
-## Data Structures
-
-### `GeoGrid`
-
-```julia
+```@docs
 GeoGrid
 ```
 
-Represents a geographic grid layout for arranging plots.
+### GridEntry
 
-See [`Geogrid`](@ref) and [Grids](grids.md) for more details, but briefly
+```@docs
+GridEntry
+```
 
-#### Structure
+## Usage Examples
 
-A `GeoGrid` is typically a DataFrame with the following columns:
+### Basic Geofaceted Plot
 
-- `code`: Geographic identifiers (e.g., "CA", "TX", "NY")
-- `row`: Grid row positions (integers starting from 1)
-- `col`: Grid column positions (integers starting from 1)
-- `name`: (Optional) Full region names
-- Additional metadata columns as needed
+```julia
+using GeoFacetMakie, DataFrames, CairoMakie
 
-#### Built-in Grids
+# Sample data
+data = DataFrame(
+    state = ["CA", "TX", "NY", "FL"],
+    population = [39.5, 29.1, 19.8, 21.5],
+    year = [2023, 2023, 2023, 2023]
+)
 
-GeoFacetMakie.jl includes several pre-defined grids:
+# Define plotting function
+function plot_bars!(gl, data; kwargs...)
+    ax = Axis(gl[1, 1]; kwargs...)
+    barplot!(ax, [1], data.population, color = :steelblue)
+    ax.title = data.state[1]
+end
 
-- `us_state_grid1`: Standard US state layout
-- `us_state_grid2`: Alternative US state arrangement
-- `us_state_grid3`: Compact US state layout
-- `us_state_contiguous_grid1`: Contiguous US only (excludes AK, HI)
+# Create geofaceted plot
+fig = geofacet(data, :state, plot_bars!;
+               figure_kwargs = (size = (800, 600),),
+               common_axis_kwargs = (ylabel = "Population (M)",))
+```
+
+### Multi-Axis Plot
+
+```julia
+# Multi-axis plot with different styling per axis
+function plot_dual!(gl, data; processed_axis_kwargs_list)
+    ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
+    ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[2]...)
+    
+    barplot!(ax1, [1], data.population, color = :blue)
+    barplot!(ax2, [1], data.gdp, color = :red)
+end
+
+fig = geofacet(data, :state, plot_dual!;
+               axis_kwargs_list = [
+                   (ylabel = "Population (M)",),
+                   (ylabel = "GDP (B)", yscale = log10)
+               ],
+               common_axis_kwargs = (titlesize = 12,))
+```
+
+### Custom Grid Usage
+
+```julia
+# Create a custom grid
+custom_grid = GeoGrid(
+    ["A", "B", "C", "D"],
+    [1, 1, 2, 2],
+    [1, 2, 1, 2]
+)
+
+# Use with geofacet
+fig = geofacet(data, :region, plot_function!; grid = custom_grid)
+```
 
 ## Plotting Function Interface
 
@@ -140,147 +133,88 @@ end
 
 ## Error Handling
 
-### Common Errors
+### Missing Regions
 
-[Grid issues](grids.md)
-
-**Invalid plotting function:**
 ```julia
-# Error: Plotting function must be mutating (end with !)
-# Solution: Rename function to end with !
-function my_plot!(gl, data; kwargs...)  # Correct
+# Skip regions not in grid (default)
+fig = geofacet(data, :state, plot_function!; missing_regions = :skip)
+
+# Show empty facets for missing regions
+fig = geofacet(data, :state, plot_function!; missing_regions = :empty)
+
+# Throw error if regions are missing
+fig = geofacet(data, :state, plot_function!; missing_regions = :error)
 ```
 
-**Axis kwargs conflicts:**
-```julia
-# Error: Conflicting axis arguments
-# Solution: Use either common_axis_kwargs OR axis_kwargs_list, not both
-```
+### Plot Function Errors
 
-### Debugging Tips
-
-1. **Test with small data**: Start with 2-3 regions
-2. **Check grid structure**: Ensure `code`, `row`, `col` columns exist
-3. **Validate plotting function**: Test function independently
-4. **Use meaningful titles**: Set `ax.title` for identification
-5. **Check data types**: Ensure numeric columns are numeric
-
-## Performance Considerations
-
-### Large Datasets
-
-For datasets with many regions or time points:
+The `geofacet` function includes error handling for plot functions. If a plot function fails for a specific region, a warning is issued and plotting continues for other regions:
 
 ```julia
-# Sample data for development
-sampled_data = data[sample(1:nrow(data), 1000), :]
-
-# Use efficient plotting
-function efficient_plot!(gl, data; kwargs...)
+function potentially_failing_plot!(gl, data; kwargs...)
     ax = Axis(gl[1, 1]; kwargs...)
-    # Minimize allocations
-    lines!(ax, data.x, data.y, linewidth = 1)
-    ax.title = data.region[1]
-    return nothing
-end
-```
-
-### Memory Usage
-
-- Use appropriate data types (`Float32` vs `Float64`)
-- Consider data aggregation for visualization
-- Use `CairoMakie` for static plots to reduce memory
-
-### Rendering Performance
-
-- Choose appropriate figure sizes
-- Limit the number of plot elements per facet
-- Use efficient Makie plotting functions
-
-## Integration with Makie Ecosystem
-
-### Backends
-
-GeoFacetMakie.jl should work with all Makie backends:
-
-```julia
-using CairoMakie    # Static plots
-using GLMakie       # Interactive plots
-using WGLMakie      # Web-based plots
-```
-
-### Themes
-
-Apply Makie themes to geofaceted plots:
-
-```julia
-with_theme(theme_dark()) do
-    geofacet(data, :state, plot_fn!)
-end
-```
-
-Alternatively, you can set the theme at the start of your file (or somewhere in your package module):
-
-```julia
-"""
-    theme_adjustments()
-
-Create custom theme adjustments for Makie plots.
-
-Returns a `Theme` object with customized font sizes and styling for axes and colorbars,
-designed to improve readability in scientific publications.
-
-# Returns
-- `Theme`: A Makie theme with adjusted font sizes and bold labels.
-"""
-function theme_adjustments()
-    return Theme(;
-        fontsize = 24,
-        Axis = (;
-            xlabelsize = 28,
-            ylabelsize = 28,
-            xlabelfont = :bold,
-            ylabelfont = :bold,
-        ),
-        Colorbar = (;
-            labelsize = 24,
-            labelfont = :bold,
-        ),
-    )
+    if data.value[1] < 0  # This might fail for some regions
+        error("Negative values not supported")
+    end
+    barplot!(ax, [1], data.value)
 end
 
-"""
-Custom theme combining theme adjustments with minimal theme.
-
-This theme is used as the base for all plots in the package, providing consistent
-styling across different visualization functions.
-"""
-custom_theme = merge(theme_adjustments(), theme_minimal())
-
-set_theme!(
-    custom_theme;
-    fontsize = 16,
-    linewidth = 6,
-    markersize = 20,
-)
-
-update_theme!(; size = (1300, 800))
-GLMakie.activate!()
+# This will warn about failed regions but continue plotting others
+fig = geofacet(data, :region, potentially_failing_plot!)
 ```
 
-### Plot Types
+## Advanced Features
 
-All Makie plot types are supported:
+### Axis Linking
 
-- `lines!`, `scatter!`, `barplot!`
-- `heatmap!`, `contour!`, `surface!`
-- `hist!`, `boxplot!`, `violin!`
-- Custom plot recipes
+```julia
+# Link both X and Y axes across facets
+fig = geofacet(data, :state, plot_function!; link_axes = :both)
+
+# Link only Y axes (good for comparing magnitudes)
+fig = geofacet(data, :state, plot_function!; link_axes = :y)
+
+# Link only X axes (good for time series)
+fig = geofacet(data, :state, plot_function!; link_axes = :x)
+
+# No linking (default)
+fig = geofacet(data, :state, plot_function!; link_axes = :none)
+```
+
+### Legend Creation
+
+```julia
+function plot_with_legend!(gl, data; kwargs...)
+    ax = Axis(gl[1, 1]; kwargs...)
+    barplot!(ax, [1], data.population, color = :blue, label = "Population")
+    lines!(ax, [0.5, 1.5], [data.gdp, data.gdp], color = :red, label = "GDP")
+    ax.title = data.state[1]
+end
+
+fig = geofacet(data, :state, plot_with_legend!;
+               legend_kwargs = (
+                   title = "Metrics",
+                   legend_position = (1, 4)  # Row 1, Column 4
+               ))
+```
+
+### Decoration Hiding
+
+When axes are linked, inner decorations (tick labels, axis labels) are automatically hidden to reduce clutter:
+
+```julia
+# Inner decorations hidden automatically when axes are linked
+fig = geofacet(data, :state, plot_function!; 
+               link_axes = :y,
+               hide_inner_decorations = true,  # Default
+               common_axis_kwargs = (
+                   xlabel = "Index",  # Only shown on bottom row
+                   ylabel = "Value"   # Only shown on left column
+               ))
+```
 
 ## See Also
 
-# - [Basic Usage Tutorial](../tutorials/basic_usage.md) - Learn the fundamentals
-# - [Advanced Features](../tutorials/advanced_features.md) - Multi-axis and complex plots
-# - [Examples Gallery](../examples/gallery.md) - Real-world examples
-# - [Grid Operations](grids.md) - Working with geographic grids
-- [Utilities](utilities.md) - Helper functions and tools
+- [Grid Operations](grids.md) - Working with geographic grids
+- [Utilities](utilities.md) - Helper functions and utilities
+- [Quick Start Guide](../quickstart.md) - Getting started tutorial

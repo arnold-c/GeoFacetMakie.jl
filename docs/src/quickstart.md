@@ -6,7 +6,7 @@ Get up and running with GeoFacetMakie.jl in minutes!
 
 Let's create your first geofaceted plot:
 
-```@example quickstart
+```julia
 using GeoFacetMakie, DataFrames, CairoMakie
 
 # Sample data for US states
@@ -17,14 +17,18 @@ data = DataFrame(
 )
 
 # Define a simple plotting function
-function plot_population!(gl, data; axis_kwargs...)
-    ax = Axis(gl[1, 1]; title = data.state[1], axis_kwargs...)
+function plot_population!(gl, data; kwargs...)
+    ax = Axis(gl[1, 1]; title = data.state[1], kwargs...)
     barplot!(ax, [1], data.population, color = :steelblue)
 end
+
+# Load a reliable grid
+grid = load_grid_from_csv("us_state_grid1")
 
 # Create the geofaceted plot
 fig = geofacet(
     data, :state, plot_population!;
+    grid = grid,
     link_axes = :y,
     figure_kwargs = (size = (800, 600),),
     common_axis_kwargs = (
@@ -95,7 +99,7 @@ geofacet(data, grouping_column, plotting_function; options...)
 
 ### Scatter Plots
 
-```@example quickstart
+```julia
 function plot_scatter!(gl, data; kwargs...)
     ax = Axis(gl[1, 1]; kwargs...)
     scatter!(ax, data.gdp_per_capita, data.population,
@@ -103,8 +107,12 @@ function plot_scatter!(gl, data; kwargs...)
     ax.title = data.state[1]
 end
 
+# Load a reliable grid
+grid = load_grid_from_csv("us_state_grid1")
+
 geofacet(
     data, :state, plot_scatter!;
+    grid = grid,
     figure_kwargs = (size = (800, 600),),
     common_axis_kwargs = (
         xlabel = "GDP per capita (\$)",
@@ -116,7 +124,7 @@ geofacet(
 
 ### Time Series
 
-```@example quickstart
+```julia
 # Create time series data
 years = 2020:2023
 ts_data = DataFrame()
@@ -137,8 +145,12 @@ function plot_timeseries!(gl, data; kwargs...)
     ax.title = data.state[1]
 end
 
+# Load a reliable grid
+grid = load_grid_from_csv("us_state_grid1")
+
 geofacet(
     ts_data, :state, plot_timeseries!;
+    grid = grid,
     figure_kwargs = (size = (800, 400),),
     common_axis_kwargs = (
         xlabel = "Year",
@@ -198,17 +210,25 @@ link_axes = :none
 
 ## Built-in Geographic Grids
 
-GeoFacetMakie.jl includes several pre-defined grids:
-
-- `us_state_grid1` - Standard US state layout
-- `us_state_grid2` - Alternative US state arrangement
-- `us_state_grid3` - Compact US state layout
-- `us_state_contiguous_grid1` - Contiguous US only (no AK, HI)
+GeoFacetMakie.jl includes many pre-defined grids from the geofacet collection:
 
 ```julia
-# Use a specific grid (optional - auto-detected by default)
-geofacet(data, :state, plot_function!; grid = us_state_grid2)
+# List available grids
+available_grids = list_available_grids()
+println("Available grids: ", join(available_grids[1:5], ", "), "...")
+
+# Load a specific grid
+grid = load_grid_from_csv("us_state_grid1")
+
+# Use with geofacet
+geofacet(data, :state, plot_function!; grid = grid)
 ```
+
+Common US state grids include:
+- `us_state_grid1` - Standard US state layout
+- `us_state_grid2` - Alternative US state arrangement  
+- `us_state_grid3` - Compact US state layout
+- `us_state_contiguous_grid1` - Contiguous US only (no AK, HI)
 
 ## Error Handling
 

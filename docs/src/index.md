@@ -48,8 +48,10 @@ function plot_bars!(gl, data; kwargs...)
     ax.title = data.state[1]
 end
 
-# Create geofaceted plot
+# Load a grid and create geofaceted plot
+grid = load_grid_from_csv("us_state_grid1")
 geofacet(data, :state, plot_bars!;
+         grid = grid,
          figure_kwargs = (size = (800, 600),),
          common_axis_kwargs = (ylabel = "Population (M)",))
 ```
@@ -73,7 +75,9 @@ Pkg.add("GeoFacetMakie")
 Pages = [
     "installation.md",
     "quickstart.md",
-    "tutorials/basic_usage.md"
+    "api/core.md",
+    "api/grids.md",
+    "api/utilities.md"
 ]
 Depth = 1
 ```

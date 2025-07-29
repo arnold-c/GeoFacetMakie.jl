@@ -66,4 +66,3 @@ println("Available predefined grids: ", count)
 get_predefined_grids_count() = PREDEFINED_GRIDS_COUNT
 
 export get_predefined_grids_count
-
