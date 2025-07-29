@@ -89,13 +89,16 @@ end
 """
     geofacet(data, region_col, plot_func;
              grid = us_state_grid,
-             figure_kwargs = NamedTuple(),
-             common_axis_kwargs = NamedTuple(),
-             axis_kwargs_list = NamedTuple[],
              link_axes = :none,
              missing_regions = :skip,
              hide_inner_decorations = true,
-            func_kwargs...)
+             title = "",
+             titlekwargs = NamedTuple[],
+             figure_kwargs = NamedTuple(),
+             common_axis_kwargs = NamedTuple(),
+             axis_kwargs_list = NamedTuple[],
+             legend_kwargs = NamedTuple(),
+             func_kwargs = NamedTuple())
 
 Create a geographically faceted plot using the specified grid layout.
 
@@ -107,6 +110,13 @@ Create a geographically faceted plot using the specified grid layout.
 
 # Keyword Arguments
 - `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid`)
+- `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
+- `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
+- `hide_inner_decorations`: Bool controlling whether to hide axis decorations on inner facets
+  when axes are linked (default: `true`). Only affects linked axes - e.g., if `link_axes = :x`,
+  only x-axis decorations are hidden for facets with neighbors below.
+- `title`: String for the overall plot title (default: `""` for no title)
+- `titlekwargs`: NamedTuple of keyword arguments passed to the title `Label` constructor
 - `figure_kwargs`: NamedTuple passed to `Figure()` constructor
 - `common_axis_kwargs`: NamedTuple applied to all axes in each facet. **Important**: To ensure proper
   hiding of axis decorations when `hide_inner_decorations = true`, axis labels (`xlabel`, `ylabel`)
@@ -115,11 +125,12 @@ Create a geographically faceted plot using the specified grid layout.
   to an axis in the order they are created in the plot function. These are merged with
   `common_axis_kwargs` (per-axis takes precedence). If multiple axes are plotted on the same facet, you
   should set the position within each NamedTuple using the kwarg `yaxisposition` (defaults to `:left`)
-- `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
-- `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
-- `hide_inner_decorations`: Bool controlling whether to hide axis decorations on inner facets
-  when axes are linked (default: `true`). Only affects linked axes - e.g., if `link_axes = :x`,
-  only x-axis decorations are hidden for facets with neighbors below.
+- `legend_kwargs`: NamedTuple of keyword arguments for legend creation. Special keys:
+  - `:title`: Legend title (extracted and passed separately to `Legend`)
+  - `:legend_position`: Tuple `(row, col)` specifying legend position in grid layout.
+    Use `nothing` for a dimension to use default (e.g., `(nothing, ncols+1)` for rightmost column)
+  - All other keys are passed directly to the `Legend` constructor
+- `func_kwargs`: NamedTuple of additional keyword arguments passed to the plot function
 
 # Returns
 A Makie Figure object containing the geofaceted plot.
@@ -135,12 +146,15 @@ data = DataFrame(
     gdp = [3_200_000, 2_400_000, 1_900_000]
 )
 
-# Single-axis plot (simplified syntax)
+# Single-axis plot with title and legend
 result = geofacet(data, :state, (layout, data; kwargs...) -> begin
     ax = Axis(layout[1, 1]; kwargs...)
-    barplot!(ax, [1], data.population)
+    barplot!(ax, [1], data.population, color = :blue, label = "Population")
 end;
-    common_axis_kwargs = (xlabel = "Index", ylabel = "Population")
+    title = "US State Population",
+    titlekwargs = (fontsize = 16, color = :darkblue),
+    common_axis_kwargs = (xlabel = "Index", ylabel = "Population"),
+    legend_kwargs = (title = "Metrics", legend_position = (1, 4))
 )
 
 # Multi-axis plot with common and per-axis kwargs
@@ -154,7 +168,8 @@ end;
     axis_kwargs_list = [
         (xlabel = "Index", ylabel = "Population"),
         (xlabel = "Index", ylabel = "GDP", yscale = log10)
-    ]
+    ],
+    figure_kwargs = (size = (1200, 800),)
 )
 ```
 """
@@ -163,13 +178,16 @@ function geofacet(
         region_col::R,
         plot_func;
         grid = us_state_grid,
-        figure_kwargs = NamedTuple(),
-        common_axis_kwargs = NamedTuple(),
-        axis_kwargs_list = NamedTuple[],
         link_axes = :none,
         missing_regions = :skip,
         hide_inner_decorations = true,
-        func_kwargs...
+        title = "",
+        titlekwargs = NamedTuple[],
+        figure_kwargs = NamedTuple(),
+        common_axis_kwargs = NamedTuple(),
+        axis_kwargs_list = NamedTuple[],
+        legend_kwargs = NamedTuple(),
+        func_kwargs = NamedTuple(),
     ) where {D <: AbstractDataFrame, R <: Union{<:AbstractString, <:Symbol}}
 
     # Input validation
@@ -375,6 +393,55 @@ function geofacet(
         end
     end
 
+    if title != ""
+        Label(grid_layout[0, :], title; titlekwargs...)
+    end
+
+    # Create legend only if requested and labeled plots exist
+    if !isempty(legend_kwargs)
+        legend_title = ""
+        legend_kwargs_dict = Dict(pairs(legend_kwargs))
+        if haskey(legend_kwargs, :title)
+            legend_title = legend_kwargs[:title]
+            delete!(legend_kwargs_dict, :title)
+        end
+
+        nrows = maximum(grid.row)
+        ncols = maximum(grid.col)
+        legend_col = ncols + 1
+        legend_row = 1:nrows
+
+        if haskey(legend_kwargs, :legend_position)
+            legend_position_nt = legend_kwargs[:legend_position]
+            @assert typeof(legend_position_nt) <: Tuple
+            if !isnothing(legend_position_nt[1])
+                legend_row = legend_position_nt[1]
+            end
+            if !isnothing(legend_position_nt[2])
+                legend_col = legend_position_nt[2]
+            end
+            delete!(legend_kwargs_dict, :legend_position)
+        end
+
+        # Check if any axes have labeled plots
+        has_labeled_plots = _has_labeled_plots(fig)
+        
+        if has_labeled_plots
+            Legend(grid_layout[legend_row, legend_col], fig.content[1], legend_title; legend_kwargs_dict...)
+
+            if maximum(legend_row) <= nrows
+                legend_row = isa(legend_row, Int) ? [legend_row] : legend_row
+                map(lr -> rowsize!(grid_layout, lr, Relative(1.0 / nrows)), legend_row)
+            end
+            if maximum(legend_col) <= ncols
+                legend_col = isa(legend_col, Int) ? [legend_col] : legend_col
+                map(lc -> colsize!(grid_layout, lc, Relative(1.0 / nrows)), legend_col)
+            end
+        else
+            @warn "Legend requested but no plots with labels found. Add labels to your plots using `label=\"My Label\"` parameter in plotting functions."
+        end
+    end
+
     return fig
 end
 
@@ -424,6 +491,26 @@ function _get_region_data(grouped_data, region_col, region_code)
     return nothing
 end
 
+"""
+    _has_labeled_plots(fig)
+
+Check if any axes in the figure contain plots with labels that can be used in a legend.
+Returns true if at least one labeled plot is found, false otherwise.
+"""
+function _has_labeled_plots(fig::Figure)
+    for content in fig.content
+        if content isa Axis
+            # Check if this axis has any plots with labels
+            for plot in content.scene.plots
+                # Check if the plot has a non-empty label
+                if haskey(plot.attributes, :label) && !isnothing(plot.label[]) && plot.label[] != ""
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
 
 function hide_all_decorations!(layout::GridLayout)
     # Find all Axis objects in the GridLayout

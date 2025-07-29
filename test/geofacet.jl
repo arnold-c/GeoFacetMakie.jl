@@ -579,14 +579,16 @@ using GeoFacetMakie
         # A and B should have x decorations hidden (they have neighbors below)
         # B and D should have y decorations hidden (they have neighbors to the left)
         @test received_kwargs["A"] == pairs((xticksvisible = false, xticklabelsvisible = false, xlabelvisible = false))
-        @test received_kwargs["B"] == pairs((
+        @test received_kwargs["B"] == pairs(
+            (
                 xticksvisible = false,
                 xticklabelsvisible = false,
                 xlabelvisible = false,
                 yticksvisible = false,
                 yticklabelsvisible = false,
                 ylabelvisible = false,
-            ))
+            )
+        )
         @test received_kwargs["C"] == pairs(NamedTuple())
         @test received_kwargs["D"] == pairs((yticksvisible = false, yticklabelsvisible = false, ylabelvisible = false))
 
@@ -685,5 +687,97 @@ using GeoFacetMakie
             hide_inner_decorations = true
         )
         @test isa(result5, Figure)
+    end
+
+    # Helper functions for legend testing
+    function has_legend(fig::Figure)
+        # Check all content in the figure's layout recursively
+        return _find_legend_recursive(fig.layout)
+    end
+
+    function _find_legend_recursive(layout)
+        for content in layout.content
+            if content.content isa Legend
+                return true
+            elseif content.content isa GridLayout
+                if _find_legend_recursive(content.content)
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
+    @testset "Legend Creation Tests" begin
+        # Test data
+        test_data = DataFrame(
+            state = ["CA", "TX", "NY"],
+            value = [100, 200, 150]
+        )
+
+        # Get expected grid dimensions
+        grid = load_us_state_grid(1)  # or whatever default grid is used
+        expected_regions = length(unique(test_data.state))
+
+        @testset "No Legend When legend_kwargs Empty" begin
+            function unlabeled_plot!(gl, data; kwargs...)
+                ax = Axis(gl[1, 1]; kwargs...)
+                scatter!(ax, [1], data.value)
+                return nothing
+            end
+
+            fig = geofacet(test_data, :state, unlabeled_plot!)
+
+            @test !has_legend(fig)
+        end
+
+        @testset "Legend Created With Labeled Plots" begin
+            function labeled_plot!(gl, data; kwargs...)
+                ax = Axis(gl[1, 1]; kwargs...)
+                scatter!(ax, [1], data.value, label = "Test Data")
+                return nothing
+            end
+
+            fig = geofacet(
+                test_data, :state, labeled_plot!;
+                legend_kwargs = (title = "My Legend",)
+            )
+
+            @test has_legend(fig)
+        end
+
+        @testset "Warning When Legend Requested But No Labels" begin
+            function unlabeled_plot!(gl, data; kwargs...)
+                ax = Axis(gl[1, 1]; kwargs...)
+                scatter!(ax, [1], data.value)  # No label
+                return nothing
+            end
+
+            # Test with warning capture
+            fig = @test_logs (:warn, r"Legend requested but no plots with labels found") geofacet(
+                test_data, :state, unlabeled_plot!;
+                legend_kwargs = (title = "My Legend",)
+            )
+
+            # Test 1: No Legend should be created despite legend_kwargs
+            @test !has_legend(fig)
+
+        end
+
+        @testset "Legend Positioning" begin
+            function labeled_plot!(gl, data; kwargs...)
+                ax = Axis(gl[1, 1]; kwargs...)
+                scatter!(ax, [1], data.value, label = "Test Data")
+                return nothing
+            end
+
+            # Test custom legend position
+            fig = geofacet(
+                test_data, :state, labeled_plot!;
+                legend_kwargs = (title = "My Legend", legend_position = (1, 1))
+            )
+
+            @test has_legend(fig)
+        end
     end
 end
