@@ -5,7 +5,9 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 GeoFacetMakie = "f2e9801d-a43b-4ab5-b898-52709f6fb569"
+LiveServer = "16fef848-5104-11e9-1b77-fb7a48bbb589"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]

@@ -2,11 +2,11 @@
 
 *Create geographically faceted visualizations with Julia and Makie.jl*
 
-# [![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
-# [![Build Status](https://github.com/arnold-c/GeoFacetMakie.jl/workflows/CI/badge.svg)](https://github.com/arnold-c/GeoFacetMakie.jl/actions?query=workflow%3ACI)
-# [![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://arnold-c.github.io/GeoFacetMakie.jl/stable)
-# [![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://arnold-c.github.io/GeoFacetMakie.jl/dev)
-#
+[![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+[![Build Status](https://github.com/arnold-c/GeoFacetMakie.jl/workflows/CI/badge.svg)](https://github.com/arnold-c/GeoFacetMakie.jl/actions?query=workflow%3ACI)
+[![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://arnold-c.github.io/GeoFacetMakie.jl/stable)
+[![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://arnold-c.github.io/GeoFacetMakie.jl/dev)
+
 ## Overview
 
 GeoFacetMakie.jl brings the power of **geofaceting** to Julia's Makie.jl ecosystem. Inspired by the R `geofacet` package, it allows you to arrange plots in geographical layouts that preserve spatial relationships while enabling detailed comparisons across regions.
@@ -108,11 +108,11 @@ We welcome contributions! See our [Contributing Guide](guides/contributing.md) f
 If you use GeoFacetMakie.jl in your research, please cite:
 
 ```bibtex
-@software{geofacetmakie2024,
+@software{geofacetmakie2025,
   author = {Arnold, Callum},
   title = {GeoFacetMakie.jl: Geographic Faceting for Julia},
   url = {https://github.com/arnold-c/GeoFacetMakie.jl},
-  year = {2024}
+  year = {2025}
 }
 ```
 

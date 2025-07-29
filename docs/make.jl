@@ -1,7 +1,11 @@
 # Documentation build script for GeoFacetMakie.jl
 # See documentation at https://juliadocs.github.io/Documenter.jl/stable/
+using Revise
+Revise.revise()
 
-using Documenter, GeoFacetMakie
+using Documenter
+using GeoFacetMakie
+
 
 # Enable plot generation in documentation
 ENV["GKSwstype"] = "100"  # For headless plot generation
@@ -60,6 +64,6 @@ makedocs(
 deploydocs(
     repo = "github.com/arnold-c/GeoFacetMakie.jl.git",
     push_preview = true,
-    devbranch = "master",
+    devbranch = "main",
     versions = ["stable" => "v^", "v#.#", "dev" => "main"],
 )
