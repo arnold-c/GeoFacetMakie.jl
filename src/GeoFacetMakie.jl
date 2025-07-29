@@ -46,4 +46,11 @@ include("plotting/geofacet_core.jl")
 # Include predefined grids
 include("data/predefined_grids.jl")
 
+# Include documentation files (attach docstrings to functions)
+include("docs/types_docs.jl")
+include("docs/grid_operations_docs.jl")
+include("docs/grid_loader_docs.jl")
+include("docs/geofacet_docs.jl")
+include("docs/internal_docs.jl")
+
 end # module
