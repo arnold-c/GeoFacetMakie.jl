@@ -54,10 +54,15 @@ makedocs(
     ],
     # strict = true,
     clean = true,
-    checkdocs = :exports,
-    # doctest = true,
-    # linkcheck = true,
-    warnonly = [:missing_docs, :cross_references],
+    # checkdocs = :exports,
+    # doctest = false,
+    # linkcheck = false,
+    warnonly = [
+        :doctest,
+        :linkcheck,
+        :missing_docs,
+        :cross_references,
+    ],
 )
 
 # Documentation deployment configuration

@@ -4,7 +4,7 @@ Documentation for GeoFacetMakie.jl main plotting functionality
 
 @doc """
     geofacet(data, region_col, plot_func;
-             grid = us_state_grid,
+             grid = us_state_grid1,
              link_axes = :none,
              missing_regions = :skip,
              hide_inner_decorations = true,

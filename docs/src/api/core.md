@@ -56,7 +56,7 @@ fig = geofacet(data, :state, plot_bars!;
 function plot_dual!(gl, data; processed_axis_kwargs_list)
     ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
     ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[2]...)
-    
+
     barplot!(ax1, [1], data.population, color = :blue)
     barplot!(ax2, [1], data.gdp, color = :red)
 end
@@ -204,7 +204,7 @@ When axes are linked, inner decorations (tick labels, axis labels) are automatic
 
 ```julia
 # Inner decorations hidden automatically when axes are linked
-fig = geofacet(data, :state, plot_function!; 
+fig = geofacet(data, :state, plot_function!;
                link_axes = :y,
                hide_inner_decorations = true,  # Default
                common_axis_kwargs = (

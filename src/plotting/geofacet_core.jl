@@ -6,6 +6,7 @@ using DataFrames
 using Makie
 
 export geofacet
+
 function geofacet(
         data::D,
         region_col::R,
@@ -277,4 +278,3 @@ function geofacet(
 
     return fig
 end
-

@@ -122,17 +122,17 @@ europe_grid = GeoGrid(
 ```julia
 function create_rectangular_grid(regions::Vector{String}, ncols::Int)
     nrows = ceil(Int, length(regions) / ncols)
-    
+
     rows = Int[]
     cols = Int[]
-    
+
     for (i, region) in enumerate(regions)
         row = ceil(Int, i / ncols)
         col = mod1(i, ncols)
         push!(rows, row)
         push!(cols, col)
     end
-    
+
     return GeoGrid(regions, rows, cols)
 end
 
