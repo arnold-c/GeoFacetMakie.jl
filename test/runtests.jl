@@ -20,6 +20,9 @@ using Makie
     
     # Plotting functionality tests
     include("plotting/geofacet_core.jl")
+    include("plotting/data_processing.jl")
+    include("plotting/axis_management.jl")
+    include("plotting/legend_detection.jl")
 end
 
 using JET

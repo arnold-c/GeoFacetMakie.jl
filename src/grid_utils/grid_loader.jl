@@ -5,6 +5,10 @@ This module provides functions to load geographical grid layouts from CSV files,
 particularly those from the geofacet R package ecosystem.
 """
 
+# Export functions
+export load_grid_from_csv, load_us_state_grid, load_us_state_grid_without_dc,
+    load_us_contiguous_grid, list_available_grids, load_grid
+
 using CSV
 using DataFrames
 
@@ -118,7 +122,7 @@ function load_us_state_grid(version::Int = 1)
         throw(ArgumentError("US state grid version must be 1, 2, or 3"))
     end
 
-    grid_file = joinpath(@__DIR__, "data", "grids", "us_state_grid$(version).csv")
+    grid_file = joinpath(@__DIR__, "..", "data", "grids", "us_state_grid$(version).csv")
     return load_grid_from_csv(grid_file)
 end
 
@@ -143,7 +147,7 @@ function load_us_state_grid_without_dc(version::Int = 1)
         throw(ArgumentError("US state grid version must be 1, 2, or 3"))
     end
 
-    grid_file = joinpath(@__DIR__, "data", "grids", "us_state_without_DC_grid$(version).csv")
+    grid_file = joinpath(@__DIR__, "..", "data", "grids", "us_state_without_DC_grid$(version).csv")
     return load_grid_from_csv(grid_file)
 end
 
@@ -161,7 +165,7 @@ grid = load_us_contiguous_grid()
 ```
 """
 function load_us_contiguous_grid()
-    grid_file = joinpath(@__DIR__, "data", "grids", "us_state_contiguous_grid1.csv")
+    grid_file = joinpath(@__DIR__, "..", "data", "grids", "us_state_contiguous_grid1.csv")
     return load_grid_from_csv(grid_file)
 end
 
@@ -180,7 +184,7 @@ println("Available grids: ", join(grids, ", "))
 ```
 """
 function list_available_grids()
-    grids_dir = joinpath(@__DIR__, "data", "grids")
+    grids_dir = joinpath(@__DIR__, "..", "data", "grids")
     if !isdir(grids_dir)
         return String[]
     end
@@ -207,10 +211,6 @@ grid = load_grid("us_state_without_DC_grid2")
 ```
 """
 function load_grid(grid_name::String)
-    grid_file = joinpath(@__DIR__, "data", "grids", "$(grid_name).csv")
+    grid_file = joinpath(@__DIR__, "..", "data", "grids", "$(grid_name).csv")
     return load_grid_from_csv(grid_file)
 end
-
-# Export functions
-export load_grid_from_csv, load_us_state_grid, load_us_state_grid_without_dc,
-    load_us_contiguous_grid, list_available_grids, load_grid

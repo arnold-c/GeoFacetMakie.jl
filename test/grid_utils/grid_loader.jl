@@ -90,7 +90,7 @@ using GeoFacetMakie
     @testset "list_available_grids" begin
         grids = list_available_grids()
         @test isa(grids, Vector{String})
-        @test length(grids) >= 7  # We downloaded 7 grids
+        @test length(grids) >= 9  # We have 9 grid files
 
         # Check that our downloaded grids are listed
         expected_grids = [
