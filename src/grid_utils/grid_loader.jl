@@ -29,17 +29,21 @@ function load_grid_from_csv(filename::String, directory::String)
             throw(ArgumentError("Missing required columns: $(join(missing_cols, ", "))"))
         end
 
-        # Find the code column (try different common names)
+        # Find the code column using regex pattern matching
         code_col = nothing
-        for col_name in ["code", "code_alpha3", "code_country", "code_iso_3166_2"]
-            if col_name in names(df)
+        column_names = names(df)
+        code_pattern = r"code"i  # Case-insensitive regex pattern
+
+        # Find first column name containing "code" (case-insensitive)
+        for col_name in column_names
+            if occursin(code_pattern, col_name)
                 code_col = col_name
                 break
             end
         end
 
         if code_col === nothing
-            throw(ArgumentError("Missing code column. Expected one of: code, code_alpha3, code_country, code_iso_3166_2"))
+            throw(ArgumentError("Missing code column. No column name contains 'code' (case-insensitive)"))
         end
 
         # Extract core data
