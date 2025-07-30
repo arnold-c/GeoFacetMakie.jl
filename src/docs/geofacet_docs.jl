@@ -6,7 +6,6 @@ Documentation for GeoFacetMakie.jl main plotting functionality
     geofacet(data, region_col, plot_func;
              grid = us_state_grid1,
              link_axes = :none,
-             missing_regions = :skip,
              hide_inner_decorations = true,
              title = "",
              titlekwargs = NamedTuple[],
@@ -14,7 +13,7 @@ Documentation for GeoFacetMakie.jl main plotting functionality
              common_axis_kwargs = NamedTuple(),
              axis_kwargs_list = NamedTuple[],
              legend_kwargs = NamedTuple(),
-             func_kwargs = NamedTuple())
+             func_kwargs = (missing_regions = :skip,))
 
 Create a geographically faceted plot using the specified grid layout.
 
@@ -27,7 +26,6 @@ Create a geographically faceted plot using the specified grid layout.
 # Keyword Arguments
 - `grid`: GeoGrid object defining the spatial layout (default: `us_state_grid1`)
 - `link_axes`: Symbol controlling axis linking (`:none`, `:x`, `:y`, `:both`)
-- `missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`)
 - `hide_inner_decorations`: Bool controlling whether to hide axis decorations on inner facets
   when axes are linked (default: `true`). Only affects linked axes - e.g., if `link_axes = :x`,
   only x-axis decorations are hidden for facets with neighbors below.
@@ -46,12 +44,14 @@ Create a geographically faceted plot using the specified grid layout.
   - `:legend_position`: Tuple `(row, col)` specifying legend position in grid layout.
     Use `nothing` for a dimension to use default (e.g., `(nothing, ncols+1)` for rightmost column)
   - All other keys are passed directly to the `Legend` constructor
-- `func_kwargs`: NamedTuple of additional keyword arguments passed to the plot function
+- `func_kwargs`: NamedTuple of additional keyword arguments passed to the plot function. **Required key**:
+  - `:missing_regions`: How to handle regions in grid but not in data (`:skip`, `:empty`, `:error`).
+    Defaults to `:skip` if not specified.
 
 # Returns
 A Makie Figure object containing the geofaceted plot.
 
-# Example
+# Examples
 ```julia
 using DataFrames, GeoFacetMakie
 
@@ -63,29 +63,63 @@ data = DataFrame(
 )
 
 # Single-axis plot with title and legend
-result = geofacet(data, :state, (layout, data; kwargs...) -> begin
-    ax = Axis(layout[1, 1]; kwargs...)
+result = geofacet(data, :state, (gl, data; kwargs...) -> begin
+    ax = Axis(gl[1, 1]; kwargs...)
     barplot!(ax, [1], data.population, color = :blue, label = "Population")
+    ax.title = data.state[1]  # Set title to state name
+    ax.xticksvisible = false  # Clean up x-axis
+    ax.xticklabelsvisible = false
 end;
     title = "US State Population",
     titlekwargs = (fontsize = 16, color = :darkblue),
-    common_axis_kwargs = (xlabel = "Index", ylabel = "Population"),
-    legend_kwargs = (title = "Metrics", legend_position = (1, 4))
+    common_axis_kwargs = (ylabel = "Population (M)",),
+    legend_kwargs = (title = "Metrics",)
 )
 
 # Multi-axis plot with common and per-axis kwargs
-result = geofacet(data, :state, (layout, data; processed_axis_kwargs_list) -> begin
-    ax1 = Axis(layout[1, 1]; processed_axis_kwargs_list[1]...)
-    ax2 = Axis(layout[2, 1]; processed_axis_kwargs_list[2]...)
+result = geofacet(data, :state, (gl, data; processed_axis_kwargs_list) -> begin
+    ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
+    ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[2]...)
     barplot!(ax1, [1], data.population)
     barplot!(ax2, [1], data.gdp)
 end;
-    common_axis_kwargs = (titlesize = 12),
+    common_axis_kwargs = (titlesize = 12,),
     axis_kwargs_list = [
-        (xlabel = "Index", ylabel = "Population"),
-        (xlabel = "Index", ylabel = "GDP", yscale = log10)
+        (xlabel = "Index", ylabel = "Population (M)"),
+        (xlabel = "Index", ylabel = "GDP (B)", yscale = log10)
     ],
     figure_kwargs = (size = (1200, 800),)
+)
+
+# Time series example with linked y-axes
+time_data = DataFrame(
+    state = repeat(["CA", "TX", "NY"], inner = 5),
+    year = repeat(2019:2023, 3),
+    value = rand(15) .* 100
+)
+
+result = geofacet(time_data, :state, (gl, data; kwargs...) -> begin
+    ax = Axis(gl[1, 1]; kwargs...)
+    lines!(ax, data.year, data.value, color = :darkgreen, linewidth = 2)
+    ax.title = data.state[1]
+end;
+    link_axes = :y,  # Link y-axes for comparison
+    common_axis_kwargs = (xlabel = "Year", ylabel = "Value"),
+    func_kwargs = (missing_regions = :skip,)  # Skip regions not in data
+)
+
+# Error handling example
+error_data = DataFrame(
+    state = ["CA", "TX", "INVALID"],  # INVALID state will be skipped
+    value = [1, 2, 3]
+)
+
+result = geofacet(error_data, :state, (gl, data; kwargs...) -> begin
+    ax = Axis(gl[1, 1]; kwargs...)
+    barplot!(ax, [1], data.value, color = :orange)
+    ax.title = data.state[1]
+end;
+    func_kwargs = (missing_regions = :skip,)  # Gracefully skip invalid regions
 )
 ```
 """ geofacet

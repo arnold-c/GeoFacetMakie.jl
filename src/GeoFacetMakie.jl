@@ -8,17 +8,25 @@ plots in geographical layouts.
 ## Main Functions
 - `geofacet`: Create geofaceted plots with custom geographical layouts
 - `GeoGrid`: Define custom geographical grid layouts
+- `load_grid_from_csv`: Load predefined grid layouts from CSV files
 
 ## Example
 ```julia
 using GeoFacetMakie, DataFrames
 
-# Create a simple geofaceted plot
-function plot_data(df, ax)
-    lines!(ax, df.year, df.value)
-end
+# Create sample data
+data = DataFrame(
+    state = ["CA", "TX", "NY"],
+    year = [2020, 2020, 2020],
+    value = [100, 85, 95]
+)
 
-geofacet(data, :state, plot_data; grid = us_state_grid)
+# Create a simple geofaceted plot
+geofacet(data, :state, (gl, data; kwargs...) -> begin
+    ax = Axis(gl[1, 1]; kwargs...)
+    lines!(ax, data.year, data.value)
+    ax.title = data.state[1]
+end; grid = us_state_grid1)
 ```
 """
 module GeoFacetMakie

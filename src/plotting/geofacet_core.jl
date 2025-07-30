@@ -13,7 +13,6 @@ function geofacet(
         plot_func;
         grid = us_state_grid1,
         link_axes = :none,
-        missing_regions = :skip,
         hide_inner_decorations = true,
         title = "",
         titlekwargs = NamedTuple[],
@@ -21,7 +20,7 @@ function geofacet(
         common_axis_kwargs = NamedTuple(),
         axis_kwargs_list = NamedTuple[],
         legend_kwargs = NamedTuple(),
-        func_kwargs = NamedTuple(),
+        func_kwargs = (missing_regions = :skip,),
     ) where {D <: AbstractDataFrame, R <: Union{<:AbstractString, <:Symbol}}
 
     # Input validation
@@ -42,8 +41,8 @@ function geofacet(
     end
 
     # Validate missing_regions parameter
-    if !(missing_regions in [:skip, :empty, :error])
-        throw(ArgumentError("missing_regions must be one of :skip, :empty, :error"))
+    if !haskey(func_kwargs, :missing_regions) || !(func_kwargs[:missing_regions] in [:skip, :empty, :error])
+        throw(ArgumentError("kwarg `func_kwargs` must contain a value for `missing_regions` equal to one of :skip, :empty, :error"))
     end
 
 
@@ -71,7 +70,7 @@ function geofacet(
     created_gridlayouts = Dict{String, GridLayout}()
 
     # Handle missing regions check
-    if missing_regions == :error
+    if func_kwargs[:missing_regions] == :error
         grid_regions = Set(grid.region)
         data_regions = Set(string.(data[!, region_col_sym]))
         missing_from_data = setdiff(grid_regions, data_regions)
@@ -84,7 +83,7 @@ function geofacet(
     # Choose which grid to use for neighbor detection based on missing_regions setting
     # When missing_regions = :empty, empty axes are created so use full grid
     # When missing_regions = :skip, only data positions have axes so use data-only grid
-    neighbor_detection_grid = if missing_regions == :empty
+    neighbor_detection_grid = if func_kwargs[:missing_regions] == :empty
         grid  # Use full grid since empty axes will be created
     else
         # Create a filtered grid containing only positions that have data
@@ -191,10 +190,14 @@ function geofacet(
                     plot_func(gl, region_data; func_kwargs..., processed_axis_kwargs_list = processed_axis_kwargs_list)
                 end
             catch e
+                if func_kwargs[:missing_regions] == :error
+                    rethrow(e)
+                end
+
                 @warn "Error plotting region $region_code: $e"
                 # Continue with other regions
             end
-        elseif missing_regions == :empty
+        elseif func_kwargs[:missing_regions] == :empty
             # No data for this region
             # Create empty axis with region label
             # Need to pass all items in processed_axis_kwargs_list to Axis to
@@ -202,7 +205,7 @@ function geofacet(
             for processed_axis_kwargs in processed_axis_kwargs_list
                 ax = Axis(gl[1, 1]; title = region_code, processed_axis_kwargs...)
             end
-        elseif missing_regions == :skip
+        elseif func_kwargs[:missing_regions] == :skip
             continue
         end
     end
@@ -264,12 +267,12 @@ function geofacet(
             Legend(grid_layout[legend_row, legend_col], fig.content[1], legend_title; legend_kwargs_dict...)
 
             if maximum(legend_row) <= nrows
-                legend_row = isa(legend_row, Int) ? [legend_row] : legend_row
-                map(lr -> rowsize!(grid_layout, lr, Relative(1.0 / nrows)), legend_row)
+                # Don't set to 100% otherwise axis labels can be clipped by bounding box
+                map(lr -> rowsize!(grid_layout, lr, Relative(0.98 / nrows)), 1:nrows)
             end
             if maximum(legend_col) <= ncols
-                legend_col = isa(legend_col, Int) ? [legend_col] : legend_col
-                map(lc -> colsize!(grid_layout, lc, Relative(1.0 / nrows)), legend_col)
+                # Don't set to 100% otherwise axis labels can be clipped by bounding box
+                map(lc -> colsize!(grid_layout, lc, Relative(0.98 / ncols)), 1:ncols)
             end
         else
             @warn "Legend requested but no plots with labels found. Add labels to your plots using `label=\"My Label\"` parameter in plotting functions."
