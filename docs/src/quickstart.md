@@ -6,6 +6,37 @@ Get up and running with GeoFacetMakie.jl in minutes!
 
 Let's create your first geofaceted plot:
 
+> [!IMPORTANT]
+> Need to update this to describe the need to handle `missing_regions` as a `func_kwarg`
+> Needs a block in the user function like below:
+>
+> ```julia
+>     if length(years) == 0 && missing_regions != :empty
+>         error("No valid data points found for state $state and serotype $serotype.")
+>     end
+> ```
+
+
+> [!IMPORTANT]
+> Need to note that all kwargs that modify the label in the Legend e.g., markersize, need to be handled by the users function and passed as part of `func_kwarg`
+>
+> ```julia
+> function user_func(...; legendmarkersize=16)
+> ...
+> scatter!(
+>   ax,
+>   x_values,
+>   y_values,
+>   color = color,
+>   markersize = markersize ,
+>   label = "series a" => (; markersize = legendmarkersize),
+> )
+> ...
+> end
+>
+> ```
+
+
 ```julia
 using GeoFacetMakie, DataFrames, CairoMakie
 
@@ -226,7 +257,7 @@ geofacet(data, :state, plot_function!; grid = grid)
 
 Common US state grids include:
 - `us_state_grid1` - Standard US state layout
-- `us_state_grid2` - Alternative US state arrangement  
+- `us_state_grid2` - Alternative US state arrangement
 - `us_state_grid3` - Compact US state layout
 - `us_state_contiguous_grid1` - Contiguous US only (no AK, HI)
 

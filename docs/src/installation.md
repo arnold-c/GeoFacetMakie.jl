@@ -27,7 +27,8 @@ Pkg.add(url="https://github.com/arnold-c/GeoFacetMakie.jl")
 
 ## Installing a Makie Backend
 
-GeoFacetMakie.jl requires a Makie backend for rendering plots. Choose one:
+GeoFacetMakie.jl requires a Makie backend for rendering plots.
+For more information about Makie backends, please read the [Makie documentation](https://docs.makie.org/stable/explanations/backends/backends), but briefly, you can choose one of the following:
 
 ### CairoMakie.jl (Recommended for most users)
 
@@ -89,7 +90,7 @@ Pkg.add("WGLMakie")
 
 Test your installation:
 
-```julia
+```@example
 using GeoFacetMakie
 using CairoMakie  # or GLMakie, WGLMakie
 
@@ -98,6 +99,8 @@ using DataFrames
 test_data = DataFrame(state = ["CA", "TX"], value = [1, 2])
 
 geofacet(test_data, :state,
+         # note you can use a named plotting function instead
+         # of an anonymous one
          (gl, data; kwargs...) -> begin
              ax = Axis(gl[1, 1]; kwargs...)
              barplot!(ax, [1], data.value)
@@ -133,19 +136,12 @@ sudo apt-get install libcairo2-dev libpango1.0-dev
 sudo yum install cairo-devel pango-devel
 ```
 
-#### Performance issues
-For large datasets or complex plots:
-- Use CairoMakie for static output
-- Consider data aggregation/sampling
-- See our [Performance Guide](guides/performance.md)
-
 ### Getting Help
 
 If you encounter issues:
 
-1. Check our [Troubleshooting Guide](guides/troubleshooting.md)
-2. Search [existing issues](https://github.com/arnold-c/GeoFacetMakie.jl/issues)
-3. Create a [new issue](https://github.com/arnold-c/GeoFacetMakie.jl/issues/new) with:
+1. Search [existing issues](https://github.com/arnold-c/GeoFacetMakie.jl/issues)
+2. Create a [new issue](https://github.com/arnold-c/GeoFacetMakie.jl/issues/new) with:
    - Julia version (`versioninfo()`)
    - Package versions (`Pkg.status()`)
    - Minimal reproducible example

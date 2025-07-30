@@ -96,7 +96,6 @@ GeoFacetMakie.jl integrates seamlessly with the Julia data science ecosystem:
 - **[Makie.jl](https://makie.juliaplots.org/)** - High-performance plotting backend
 - **[DataFrames.jl](https://dataframes.juliadata.org/)** - Data manipulation and grouping
 - **[CSV.jl](https://csv.juliadata.org/)** - Data loading from files
-- **[StatsPlots.jl](https://github.com/JuliaPlots/StatsPlots.jl)** - Statistical plotting recipes
 
 ## Contributing
 
