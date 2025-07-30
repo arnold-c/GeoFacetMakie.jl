@@ -55,6 +55,38 @@ values = collect(entry)  # ["CA", 1, 2]
 # Functional style
 regions = map(e -> e[1], grid)  # Extract all regions
 ```
+
+# Working with Names and Metadata
+```julia
+# Create entry with custom display name
+entry = GridEntry("CA", 1, 2, "California")
+println(entry.name)  # "California"
+
+# Create entry with metadata (e.g., from CSV loading)
+metadata = Dict("population" => 39538223, "area_km2" => 423970)
+entry = GridEntry("CA", 1, 2, "California", metadata)
+
+# Access metadata
+pop = entry.metadata["population"]  # 39538223
+area = entry.metadata["area_km2"]   # 423970
+
+# Use in plotting functions (assuming you have access to the grid entry)
+# Note: This is a conceptual example - in practice you'd need to look up
+# the grid entry for the current region within your plot function
+geofacet(data, :state, (gl, data; kwargs...) -> begin
+    ax = Axis(gl[1, 1]; kwargs...)
+    # Use region code for title (standard approach)
+    ax.title = data.state[1]  # "CA"
+    
+    # Or if you have access to the grid entry with display names:
+    # ax.title = entry.name  # "California" instead of "CA"
+    
+    lines!(ax, data.year, data.value)
+end)
+
+# Filter grids by metadata
+large_states = filter(e -> get(e.metadata, "population", 0) > 10_000_000, grid)
+```
 """ GridEntry
 
 @doc """
