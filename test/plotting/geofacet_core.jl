@@ -26,26 +26,27 @@ using GeoFacetMakie
     )
 
     # Simple plot function for testing (GridLayout API) - using new simplified syntax
-    function simple_plot_func!(gl, data; kwargs...)
+    function simple_plot_func!(gl, data; missing_regions = :skip, kwargs...)
         ax = Axis(gl[1, 1]; kwargs...)
         scatter!(ax, [1], data.value)
         return nothing
     end
 
-    function line_plot_func!(gl, data; kwargs...)
+    function line_plot_func!(gl, data; missing_regions = :skip, kwargs...)
         ax = Axis(gl[1, 1]; kwargs...)
         lines!(ax, data.date, data.cases)
         return nothing
     end
 
     # Multi-axis plot function for testing - using explicit processed_axis_kwargs_list
-    function multi_axis_plot_func!(gl, data; processed_axis_kwargs_list)
+    function multi_axis_plot_func!(gl, data; missing_regions = :skip, processed_axis_kwargs_list)
         ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
         ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[2]...)
         scatter!(ax1, [1], data.value)
         scatter!(ax2, [1], data.secondary_value)
         return nothing
     end
+
     @testset "Basic Function Signature and Return Structure" begin
         # Test basic function calls
         @test_nowarn geofacet(sample_data, :state, simple_plot_func!)
@@ -79,7 +80,7 @@ using GeoFacetMakie
         # Test that plot functions receive GridLayout objects correctly
         received_objects = []
 
-        function gridlayout_test_func!(gl, data; kwargs...)
+        function gridlayout_test_func!(gl, data; missing_regions = :skip, kwargs...)
             push!(received_objects, gl)
             ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, [1], data.value)
@@ -99,7 +100,7 @@ using GeoFacetMakie
 
     @testset "Single Axis Creation in GridLayout" begin
         # Test basic single axis creation within GridLayout
-        function single_axis_func!(gl, data; kwargs...)
+        function single_axis_func!(gl, data; missing_regions = :skip, kwargs...)
             ax = Axis(gl[1, 1]; kwargs...)
             barplot!(ax, [1], data.value, color = :steelblue)
             ax.title = data.state[1]
@@ -115,7 +116,7 @@ using GeoFacetMakie
 
     @testset "Multi-Axis Creation in GridLayout" begin
         # Test creating multiple axes within a single GridLayout (facet)
-        function multi_axis_func!(gl, data; processed_axis_kwargs_list)
+        function multi_axis_func!(gl, data; missing_regions = :skip, processed_axis_kwargs_list)
             # Create two axes in the same GridLayout
             ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
             ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[1]...)
@@ -155,7 +156,7 @@ using GeoFacetMakie
 
     @testset "Dual Y-Axis Implementation" begin
         # Test creating dual y-axis plots similar to the examples
-        function dual_axis_func!(gl, data; kwargs...)
+        function dual_axis_func!(gl, data; missing_regions = :skip, kwargs...)
             # Create primary axis
             ax1 = Axis(gl[1, 1]; kwargs...)
 
@@ -216,7 +217,7 @@ using GeoFacetMakie
     @testset "Plot Function Execution" begin
         # Test that plot function is called for each region
         plot_calls = String[]
-        function tracking_plot_func!(gl, data; kwargs...)
+        function tracking_plot_func!(gl, data; missing_regions = :skip, kwargs...)
             push!(plot_calls, data.state[1])  # Track which state was plotted
             ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, [1], data.value)
@@ -265,7 +266,7 @@ using GeoFacetMakie
         @test isa(result4, Figure)
 
         # Test axis linking with multi-axis plots
-        function linked_multi_axis_func!(gl, data; kwargs...)
+        function linked_multi_axis_func!(gl, data; missing_regions = :skip, kwargs...)
             ax = Axis(gl[1, 1]; kwargs...)
             lines!(
                 ax, [1, 2, 3], [data.value[1], data.value[1] * 1.1, data.value[1] * 1.2],
@@ -289,17 +290,17 @@ using GeoFacetMakie
         )
 
         # Test skip missing regions (default)
-        result1 = geofacet(limited_data, :state, simple_plot_func!; missing_regions = :skip)
+        result1 = geofacet(limited_data, :state, simple_plot_func!; func_kwargs = (missing_regions = :skip,))
         @test isa(result1, Figure)
         @test !isnothing(result1.layout)
 
         # Test empty GridLayouts for missing regions
-        result2 = geofacet(limited_data, :state, simple_plot_func!; missing_regions = :empty)
+        result2 = geofacet(limited_data, :state, simple_plot_func!; func_kwargs = (missing_regions = :empty,))
         @test isa(result2, Figure)
         @test !isnothing(result2.layout)
 
         # Test error on missing regions
-        @test_throws Exception geofacet(limited_data, :state, simple_plot_func!; missing_regions = :error)
+        @test_throws Exception geofacet(limited_data, :state, simple_plot_func!; func_kwargs = (missing_regions = :error,))
     end
 
     @testset "Error Handling" begin
@@ -312,7 +313,7 @@ using GeoFacetMakie
 
         # Test plot function that throws error - should handle gracefully with warnings
         error_count = 0
-        function error_plot_func!(gl, data; kwargs...)
+        function error_plot_func!(gl, data; missing_regions = :skip, kwargs...)
             error_count += 1
             if error_count <= 2  # First two calls will error
                 error("Simulated plotting error")
@@ -324,10 +325,8 @@ using GeoFacetMakie
             end
         end
 
-        # Should handle errors gracefully and continue with other facets
-        result = geofacet(sample_data, :state, error_plot_func!)
-        @test isa(result, Figure)
-        @test !isnothing(result.layout)
+        # Should error and continue with other facets
+        @test_throws Exception geofacet(sample_data, :state, error_plot_func!)
     end
 
     @testset "Region Code Matching" begin
@@ -356,7 +355,7 @@ using GeoFacetMakie
 
     @testset "Different Plot Types" begin
         # Test with different plot functions
-        function bar_plot_func!(gl, data; kwargs...)
+        function bar_plot_func!(gl, data; missing_regions = :skip, kwargs...)
             ax = Axis(gl[1, 1]; kwargs...)
             barplot!(ax, [1], data.value)
             return nothing
@@ -369,7 +368,7 @@ using GeoFacetMakie
         @test isa(result2, Figure)
 
         # Test with multiple series
-        function multi_plot_func!(gl, data; kwargs...)
+        function multi_plot_func!(gl, data; missing_regions, kwargs...)
             ax = Axis(gl[1, 1]; kwargs...)
             lines!(ax, data.date, data.cases, color = :blue)
             scatter!(ax, data.date, data.cases, color = :red)
@@ -379,7 +378,7 @@ using GeoFacetMakie
         @test isa(result3, Figure)
 
         # Test complex multi-panel layouts (2x2 grid within facets)
-        function complex_layout_func!(gl, data; kwargs...)
+        function complex_layout_func!(gl, data; missing_regions = :skip, kwargs...)
             # Create a 2x2 grid of axes within the facet
             ax1 = Axis(gl[1, 1]; kwargs...)  # Top-left
             ax2 = Axis(gl[1, 2]; kwargs...)  # Top-right
@@ -413,7 +412,7 @@ using GeoFacetMakie
 
     @testset "GridLayout Axis Collection and Linking" begin
         # Test the internal axis collection functionality
-        function multi_axis_func!(gl, data; kwargs...)
+        function multi_axis_func!(gl, data; missing_regions = :skip, kwargs...)
             ax1 = Axis(gl[1, 1]; kwargs...)
             ax2 = Axis(gl[2, 1]; kwargs...)
 
@@ -454,7 +453,7 @@ using GeoFacetMakie
             date = repeat([Date(2023, 1, 1)], 250)
         )
 
-        function performance_func!(gl, data; kwargs...)
+        function performance_func!(gl, data; missing_regions = :skip, kwargs...)
             ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, data.value, data.secondary_value, markersize = 4)
             ax.title = data.state[1]
@@ -521,7 +520,7 @@ using GeoFacetMakie
 
         # Track which axis_kwargs are passed to each region
         received_kwargs = Dict{String, Any}()
-        function kwargs_tracking_plot_func!(gl, data; kwargs...)
+        function kwargs_tracking_plot_func!(gl, data; missing_regions = :skip, kwargs...)
             received_kwargs[data.state[1]] = kwargs
             ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, [1], data.value)
@@ -619,7 +618,7 @@ using GeoFacetMakie
         )
 
         # Test single-axis with simplified kwargs... syntax
-        function single_axis_simple!(gl, data; kwargs...)
+        function single_axis_simple!(gl, data; missing_regions = :skip, kwargs...)
             ax = Axis(gl[1, 1]; kwargs...)
             scatter!(ax, [1], data.value1)
             return nothing
@@ -632,7 +631,7 @@ using GeoFacetMakie
         @test isa(result1, Figure)
 
         # Test single-axis with explicit processed_axis_kwargs_list (should still work)
-        function single_axis_explicit!(gl, data; processed_axis_kwargs_list)
+        function single_axis_explicit!(gl, data; missing_regions = :skip, processed_axis_kwargs_list)
             ax = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
             scatter!(ax, [1], data.value1)
             return nothing
@@ -645,7 +644,7 @@ using GeoFacetMakie
         @test isa(result2, Figure)
 
         # Test multi-axis with axis_kwargs_list (requires processed_axis_kwargs_list)
-        function multi_axis_explicit!(gl, data; processed_axis_kwargs_list)
+        function multi_axis_explicit!(gl, data; missing_regions = :skip, processed_axis_kwargs_list)
             ax1 = Axis(gl[1, 1]; processed_axis_kwargs_list[1]...)
             ax2 = Axis(gl[2, 1]; processed_axis_kwargs_list[2]...)
 
@@ -724,7 +723,7 @@ using GeoFacetMakie
         expected_regions = length(unique(test_data.state))
 
         @testset "No Legend When legend_kwargs Empty" begin
-            function unlabeled_plot!(gl, data; kwargs...)
+            function unlabeled_plot!(gl, data; missing_regions = :skip, kwargs...)
                 ax = Axis(gl[1, 1]; kwargs...)
                 scatter!(ax, [1], data.value)
                 return nothing
@@ -736,7 +735,7 @@ using GeoFacetMakie
         end
 
         @testset "Legend Created With Labeled Plots" begin
-            function labeled_plot!(gl, data; kwargs...)
+            function labeled_plot!(gl, data; missing_regions = :skip, kwargs...)
                 ax = Axis(gl[1, 1]; kwargs...)
                 scatter!(ax, [1], data.value, label = "Test Data")
                 return nothing
@@ -751,7 +750,7 @@ using GeoFacetMakie
         end
 
         @testset "Warning When Legend Requested But No Labels" begin
-            function unlabeled_plot!(gl, data; kwargs...)
+            function unlabeled_plot!(gl, data; missing_regions = :skip, kwargs...)
                 ax = Axis(gl[1, 1]; kwargs...)
                 scatter!(ax, [1], data.value)  # No label
                 return nothing
@@ -769,7 +768,7 @@ using GeoFacetMakie
         end
 
         @testset "Legend Positioning" begin
-            function labeled_plot!(gl, data; kwargs...)
+            function labeled_plot!(gl, data; missing_regions = :skip, kwargs...)
                 ax = Axis(gl[1, 1]; kwargs...)
                 scatter!(ax, [1], data.value, label = "Test Data")
                 return nothing

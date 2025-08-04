@@ -183,19 +183,17 @@ function geofacet(
                         if e isa UndefKeywordError && e.var == :processed_axis_kwargs_list
                             plot_func(gl, region_data; func_kwargs..., processed_axis_kwargs_list = processed_axis_kwargs_list)
                         else
-                            rethrow(e)
+                            rethrow()
                         end
                     end
                 else
                     plot_func(gl, region_data; func_kwargs..., processed_axis_kwargs_list = processed_axis_kwargs_list)
                 end
             catch e
-                if func_kwargs[:missing_regions] == :error
-                    rethrow(e)
+                if occursin(r"InvalidAttributeError\(Axis, .*missing_regions", "$e")
+                    error("Make sure to include `missing_regions` as a kwarg in your plotting function definition!")
                 end
-
-                @warn "Error plotting region $region_code: $e"
-                # Continue with other regions
+                error("Error plotting region $region_code: $e")
             end
         elseif func_kwargs[:missing_regions] == :empty
             # No data for this region
@@ -207,6 +205,8 @@ function geofacet(
             end
         elseif func_kwargs[:missing_regions] == :skip
             continue
+        else
+            error("Region $region_code does not contain any data and `func_kwargs = (missing_regions = :error, ...)`\nTo proceed with the current data and grid, change the `missing_regions` kwarg value to one of :empty or :skip")
         end
     end
 
