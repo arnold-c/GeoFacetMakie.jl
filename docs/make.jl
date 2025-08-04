@@ -7,9 +7,6 @@ using Documenter
 using GeoFacetMakie
 
 
-# Enable plot generation in documentation
-ENV["GKSwstype"] = "100"  # For headless plot generation
-
 makedocs(
     modules = [GeoFacetMakie],
     format = Documenter.HTML(

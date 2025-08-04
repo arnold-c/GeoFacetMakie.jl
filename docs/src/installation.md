@@ -98,14 +98,19 @@ using CairoMakie  # or GLMakie, WGLMakie
 using DataFrames
 test_data = DataFrame(state = ["CA", "TX"], value = [1, 2])
 
-geofacet(test_data, :state,
-         # note you can use a named plotting function instead
-         # of an anonymous one
-         (gl, data; kwargs...) -> begin
-             ax = Axis(gl[1, 1]; kwargs...)
-             barplot!(ax, [1], data.value)
-             ax.title = data.state[1]
-         end)
+fig = geofacet(
+    test_data, :state,
+    # note you can use a named plotting function instead
+    # of an anonymous one. User function must contain the
+    # kwarg `missing_regions`
+    (gl, data; missing_regions, kwargs...) -> begin
+        ax = Axis(gl[1, 1]; kwargs...)
+        barplot!(ax, [1], data.value)
+        ax.title = data.state[1]
+    end;
+    func_kwargs = (missing_regions = :empty,)
+)
+fig
 ```
 
 If this runs without errors, your installation is successful!
