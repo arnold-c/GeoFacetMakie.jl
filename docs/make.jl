@@ -25,6 +25,7 @@ makedocs(
         "Quick Start" => "quickstart.md",
         "Tutorials" => [
             "Basic Usage" => "tutorials/basic_usage.md",
+            "Advanced Usage" => "tutorials/multiple_axis_demo.md",
             #     "Customization" => "tutorials/customization.md",
             #     "Advanced Features" => "tutorials/advanced_features.md",
             #     "Data Preparation" => "tutorials/data_preparation.md",
