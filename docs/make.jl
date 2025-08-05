@@ -23,12 +23,12 @@ makedocs(
         "Home" => "index.md",
         "Installation" => "installation.md",
         "Quick Start" => "quickstart.md",
-        # "Tutorials" => [
-        #     "Basic Usage" => "tutorials/basic_usage.md",
-        #     "Customization" => "tutorials/customization.md",
-        #     "Advanced Features" => "tutorials/advanced_features.md",
-        #     "Data Preparation" => "tutorials/data_preparation.md",
-        # ],
+        "Tutorials" => [
+            "Basic Usage" => "tutorials/basic_usage.md",
+            #     "Customization" => "tutorials/customization.md",
+            #     "Advanced Features" => "tutorials/advanced_features.md",
+            #     "Data Preparation" => "tutorials/data_preparation.md",
+        ],
         # "Examples" => [
         #     "Gallery" => "examples/gallery.md",
         #     "Basic Plots" => "examples/basic_plots.md",

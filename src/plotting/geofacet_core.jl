@@ -214,7 +214,7 @@ function geofacet(
                     plot_func(gl, region_data; func_kwargs..., processed_axis_kwargs_list = processed_axis_kwargs_list)
                 end
             catch e
-                if occursin(r"InvalidAttributeError\(Axis, .*missing_regions", "$e")
+                if occursin(r"InvalidAttributeError\(.*Axis, .*missing_regions", "$e")
                     error("Make sure to include `missing_regions` as a kwarg in your plotting function definition!")
                 end
                 error("Error plotting region $region_code: $e")
