@@ -59,15 +59,17 @@ function GeoGrid(regions::Vector{String}, rows::Vector{Int}, cols::Vector{Int})
 
     # Create with names defaulting to regions and empty metadata
     names = copy(regions)
-    metadata = [Dict{String,Any}() for _ in regions]
+    metadata = [Dict{String, Any}() for _ in regions]
 
-    return StructArray{GridEntry}((
-        region = regions, 
-        row = rows, 
-        col = cols, 
-        name = names, 
-        metadata = metadata
-    ))
+    return StructArray{GridEntry}(
+        (
+            region = regions,
+            row = rows,
+            col = cols,
+            name = names,
+            metadata = metadata,
+        )
+    )
 end
 
 
@@ -92,19 +94,21 @@ function GeoGrid(regions::Vector{String}, rows::Vector{Int}, cols::Vector{Int}, 
 
     # Default empty names to regions
     display_names = [isempty(strip(name)) ? region : name for (region, name) in zip(regions, names)]
-    metadata = [Dict{String,Any}() for _ in regions]
+    metadata = [Dict{String, Any}() for _ in regions]
 
-    return StructArray{GridEntry}((
-        region = regions, 
-        row = rows, 
-        col = cols, 
-        name = display_names, 
-        metadata = metadata
-    ))
+    return StructArray{GridEntry}(
+        (
+            region = regions,
+            row = rows,
+            col = cols,
+            name = display_names,
+            metadata = metadata,
+        )
+    )
 end
 
 
-function GeoGrid(regions::Vector{String}, rows::Vector{Int}, cols::Vector{Int}, names::Vector{String}, metadata::Vector{Dict{String,Any}})
+function GeoGrid(regions::Vector{String}, rows::Vector{Int}, cols::Vector{Int}, names::Vector{String}, metadata::Vector{Dict{String, Any}})
     if !(length(regions) == length(rows) == length(cols) == length(names) == length(metadata))
         throw(ArgumentError("All input vectors must have the same length"))
     end
@@ -126,11 +130,14 @@ function GeoGrid(regions::Vector{String}, rows::Vector{Int}, cols::Vector{Int}, 
     # Default empty names to regions
     display_names = [isempty(strip(name)) ? region : name for (region, name) in zip(regions, names)]
 
-    return StructArray{GridEntry}((
-        region = regions, 
-        row = rows, 
-        col = cols, 
-        name = display_names, 
-        metadata = metadata
-    ))
+    return StructArray{GridEntry}(
+        (
+            region = regions,
+            row = rows,
+            col = cols,
+            name = display_names,
+            metadata = metadata,
+        )
+    )
 end
+
