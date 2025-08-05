@@ -5,5 +5,5 @@ All the grids have been sourced from the [grid designer repository](https://gith
 ```@example
 using GeoFacetMakie
 grids = list_available_grids()
-println("Available grids:\n\n", join(grids, ",\n"))
+println("Available grids:\n\n", join(grids, "\n"))
 ```
