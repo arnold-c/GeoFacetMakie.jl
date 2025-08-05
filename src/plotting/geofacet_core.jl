@@ -21,6 +21,7 @@ function geofacet(
         axis_kwargs_list = NamedTuple[],
         legend_kwargs = NamedTuple(),
         func_kwargs = (missing_regions = :skip,),
+        additional_regions = :error
     ) where {D <: AbstractDataFrame, R <: Union{<:AbstractString, <:Symbol}}
 
     # Input validation
@@ -43,6 +44,11 @@ function geofacet(
     # Validate missing_regions parameter
     if !haskey(func_kwargs, :missing_regions) || !(func_kwargs[:missing_regions] in [:skip, :empty, :error])
         throw(ArgumentError("kwarg `func_kwargs` must contain a value for `missing_regions` equal to one of :skip, :empty, :error"))
+    end
+
+    # Validate missing_regions parameter
+    if !(additional_regions in [:warn, :error])
+        throw(ArgumentError("additional_regions must be one of :warn, :error"))
     end
 
 
@@ -69,14 +75,32 @@ function geofacet(
     # Track regions with data for return structure (backward compatibility)
     created_gridlayouts = Dict{String, GridLayout}()
 
+    grid_regions = Set(grid.region)
+    data_regions = Set(string.(data[!, region_col_sym]))
+    n_data_regions = length(data_regions)
+
+    if length(unique(data_regions)) != n_data_regions
+        error("The number of unicode regions must be the same as the total number present in the data.\nInstead, recieved $n_data_regions, but $(length(unique(data_regions))) unique ones")
+    end
+
     # Handle missing regions check
     if func_kwargs[:missing_regions] == :error
-        grid_regions = Set(grid.region)
-        data_regions = Set(string.(data[!, region_col_sym]))
         missing_from_data = setdiff(grid_regions, data_regions)
         if !isempty(missing_from_data)
             missing_list = join(missing_from_data, ", ")
             throw(ArgumentError("Missing regions in data: $missing_list"))
+        end
+    end
+
+    # Handle additional regions check
+    extra_from_data = setdiff(data_regions, grid_regions)
+    if !isempty(extra_from_data)
+        extra_list = join(extra_from_data, ", ")
+        extra_message = "Additional regions in data not present in the grid provided: $extra_list"
+        if additional_regions == :error
+            throw(ArgumentError(extra_message))
+        else
+            @warn extra_message
         end
     end
 
