@@ -190,7 +190,9 @@ function geofacet(
             num_axes
         )
 
-        # Check if we have data for this region
+        # Check if we have any data for this region, though not checking if the exact series
+        # of data required for the plot exists
+        # TODO: Update this to actually confirm if has series data
         if _has_region_data(available_regions, region_code)
             # Get the actual data for this region
             region_data = _get_region_data(grouped_data, region_col_sym, region_code)
@@ -225,6 +227,7 @@ function geofacet(
             # Need to pass all items in processed_axis_kwargs_list to Axis to
             # Correctly handle hiding decorations for empty facets
             for processed_axis_kwargs in processed_axis_kwargs_list
+                # TODO: make sure there are no axis labels or ticks for empty axes
                 ax = Axis(gl[1, 1]; title = region_code, processed_axis_kwargs...)
             end
         elseif func_kwargs[:missing_regions] == :skip
