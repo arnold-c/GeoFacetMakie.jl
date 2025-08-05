@@ -63,7 +63,6 @@ List all available predefined grid layouts.
 # Example
 ```julia
 grids = list_available_grids()
-println("Available grids: ", join(grids, ", "))
+println("Available grids:\n\n", join(grids, "\n"))
 ```
 """ list_available_grids
-

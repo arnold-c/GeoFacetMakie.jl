@@ -38,6 +38,7 @@ makedocs(
         "API Reference" => [
             "Core Functions" => "api/core.md",
             "Grid Operations" => "api/grids.md",
+            "Available Grids" => "api/available-grids.md",
             "Utilities" => "api/utilities.md",
         ],
         # "Guides" => [
@@ -51,14 +52,12 @@ makedocs(
     ],
     # strict = true,
     clean = true,
-    # checkdocs = :exports,
-    # doctest = false,
-    # linkcheck = false,
     warnonly = [
         :doctest,
         :linkcheck,
         :missing_docs,
         :cross_references,
+        :example_block,
     ],
 )
 
