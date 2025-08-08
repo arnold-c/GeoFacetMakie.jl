@@ -84,9 +84,8 @@ Depth = 1
 
 ## Examples Gallery
 
-| Basic Plots | Time Series | Advanced Features |
-|-------------|-------------|-------------------|
-| [Basic plotting tutorial](tutorials/basic_usage.md) | [Time series tutorial](examples/timeseries.md) | [Advanced features](tutorials/advanced_features.md) |
+[Basic tutorial](./tutorials/basic_usage.md)
+[Advanced multi-axis tutorial](./tutorials/multiple_axis_demo.md)
 
 ## Package Ecosystem
 
@@ -98,12 +97,8 @@ GeoFacetMakie.jl integrates seamlessly with the Julia data science ecosystem:
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guide](guides/contributing.md) for details on:
-
-- Reporting bugs and requesting features
-- Contributing code and documentation
-- Adding new geographic grids
-- Improving performance and functionality
+> [!IMPORTANT]
+> TODO
 
 ## Citation
 

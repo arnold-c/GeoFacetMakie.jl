@@ -155,5 +155,4 @@ If you encounter issues:
 ## Next Steps
 
 - [Quick Start Guide](quickstart.md) - Get up and running quickly
-- [Basic Usage Tutorial](tutorials/basic_usage.md) - Learn the fundamentals
-- [Examples Gallery](examples/gallery.md) - See what's possible
+- [Basic Usage Tutorial](./tutorials/basic_usage.md) - Learn the fundamentals

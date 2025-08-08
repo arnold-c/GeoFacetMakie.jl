@@ -4,51 +4,6 @@ using Documenter
 using DocumenterVitepress
 using GeoFacetMakie
 
-#
-# makedocs(
-#     modules = [GeoFacetMakie],
-#     format = Documenter.HTML(
-#         prettyurls = get(ENV, "CI", nothing) == "true",
-#         canonical = "https://arnold-c.github.io/GeoFacetMakie.jl",
-#         assets = String[],
-#         edit_link = "main",
-#         sidebar_sitename = true,
-#     ),
-#     authors = "arnold-c",
-#     sitename = "GeoFacetMakie.jl",
-#     pages = [
-#         "Home" => "index.md",
-#         "Installation" => "installation.md",
-#         "Quick Start" => "quickstart.md",
-#         "Tutorials" => [
-#             "Basic Usage" => "tutorials/basic_usage.md",
-#             "Advanced Usage" => "tutorials/multiple_axis_demo.md",
-#         ],
-#         "API Reference" => [
-#             "Core Functions" => "api/core.md",
-#             "Grid Operations" => "api/grids.md",
-#             "Available Grids" => "api/available-grids.md",
-#             "Utilities" => "api/utilities.md",
-#         ],
-#     ],
-#     clean = true,
-#     warnonly = [
-#         :doctest,
-#         :linkcheck,
-#         :missing_docs,
-#         :cross_references,
-#         :example_block,
-#     ],
-# )
-#
-# # Documentation deployment configuration
-# deploydocs(
-#     repo = "github.com/arnold-c/GeoFacetMakie.jl.git",
-#     push_preview = true,
-#     devbranch = "main",
-#     versions = ["stable" => "v^", "v#.#", "dev" => "main"],
-# )
-#
 gh_user = "arnold-c"
 gh_repo_name = "GeoFacetMakie.jl"
 repo = "github.com/$gh_user/$gh_repo_name.git"

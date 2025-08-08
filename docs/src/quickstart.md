@@ -156,7 +156,7 @@ geofacet(data, grouping_column, plotting_function; options...)
 **Common options:**
 - `figure_kwargs` - Figure size, resolution, etc.
 - `common_axis_kwargs` - Axis labels, styling applied to all facets and all axes within a facet
-    - If you have a more complicated figure with multiple axes within a facet e.g., overlaying a bar and line plot that do not share the same axis, use `common_axis_kwargs` to specify axis kwargs that should be shared, and then pass Axis-specific kwargs within `axis_kwargs_list` (in the order the axes are specified within `plotting_function`). See [this page](./more-complex-plots.md) for an example of handling multiple axes.
+    - If you have a more complicated figure with multiple axes within a facet e.g., overlaying a bar and line plot that do not share the same axis, use `common_axis_kwargs` to specify axis kwargs that should be shared, and then pass Axis-specific kwargs within `axis_kwargs_list` (in the order the axes are specified within `plotting_function`). See [this page](./tutorials/multiple_axis_demo.md) for an example of handling multiple axes.
 - `link_axes` - Link axes across facets (`:x`, `:y`, `:both`, `:none`)
 - `func_kwargs` - Kwargs should be passed to your plotting function e.g., `missing_regions`
 - `hide_inner_decorations` - Boolean that toggles whether to hide the inner axis decorations when it has a direct neighbor that could show the relevant axis label (defaults to `true`)
@@ -381,13 +381,10 @@ fig_with_extra_state = geofacet(
 
 Now that you understand the basics:
 
-1. **[Basic Usage Tutorial](tutorials/basic_usage.md)** - Detailed walkthrough with more examples
-2. **[Customization Tutorial](tutorials/customization.md)** - Advanced styling and customization
-3. **[Examples Gallery](examples/gallery.md)** - See real-world examples
+1. **[Basic Usage Tutorial](./tutorials/basic_usage.md)** - Detailed walkthrough with more examples
+1. **[Advanced multi-axis tutorial](./tutorials/multiple_axis_demo.md)** - A more complicated example with multiple axes per facet
 4. **[API Reference](api/core.md)** - Complete function documentation
 
 ## Need Help?
 
-- Check the [Troubleshooting Guide](guides/troubleshooting.md)
-- Browse [Examples](examples/gallery.md) for inspiration
 - Ask questions in [GitHub Issues](https://github.com/arnold-c/GeoFacetMakie.jl/issues)

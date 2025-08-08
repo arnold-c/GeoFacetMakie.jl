@@ -4,7 +4,7 @@
 ShareDefaultModule = true
 ```
 
-As seen in the [Quickstart](../quickstart.md) guide, you can get going pretty quickly with an understanding of [DataFrames.jl](dataframes.juliadata.org/stable/) and [Makie.jl](https://docs.makie.org/stable/).
+As seen in the [Quickstart](../quickstart.md) guide, you can get going pretty quickly with an understanding of [DataFrames.jl](https://dataframes.juliadata.org/stable/) and [Makie.jl](https://docs.makie.org/stable/).
 Let's walk through a couple of relatively simple examples.
 
 ## Example 1 - setting up a basic plot
