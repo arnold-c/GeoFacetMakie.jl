@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "@nolebase/vitepress-plugin-enhanced-readabilities": "^2.18.1",
+    "markdown-it-footnote": "^4.0.0",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-tabs": "^0.7.1"
+  }
+}

@@ -86,7 +86,6 @@ Depth = 1
 
 | Basic Plots | Time Series | Advanced Features |
 |-------------|-------------|-------------------|
-| ![Population bars](examples/population_bars.png) | ![Time series](examples/population_timeseries.png) | ![Dual timeseries](examples/full_states_dual_timeseries.png) |
 | [Basic plotting tutorial](tutorials/basic_usage.md) | [Time series tutorial](examples/timeseries.md) | [Advanced features](tutorials/advanced_features.md) |
 
 ## Package Ecosystem
